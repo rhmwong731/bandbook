@@ -89,3 +89,5 @@ tests/, tests-integration/  unit tests, server test
 ## Porting to iOS / Android
 
 Wrap `public/` with Capacitor. The app talks to the band server over plain HTTPS, so nothing about sync changes. Pen input uses Pointer Events and works with Apple Pencil and Android styluses.
+
+> Deploys automatically: every push to `main` is built and deployed by Cloudflare Workers Builds.
