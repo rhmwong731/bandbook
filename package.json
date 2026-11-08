@@ -4,7 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "python3 -m http.server 8080",
-    "test": "for f in tests/*.test.mjs; do node $f || exit 1; done"
+    "start": "python3 -m http.server 8080 -d public",
+    "test": "for f in tests/*.test.mjs; do node $f || exit 1; done",
+    "dev": "wrangler dev --local --port 8787",
+    "test:server": "./tests-integration/run.sh",
+    "setup": "node worker/setup.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.158.0"
   }
 }

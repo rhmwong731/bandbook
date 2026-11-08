@@ -78,10 +78,12 @@
         <input id="mBpm" type="number" min="30" max="300" value="100" title="Beats per minute">
         <button id="mBpmUp" title="Faster">+</button>
         <button id="mTap" title="Tap along to set the tempo">Tap</button>
+        <button id="mSave" title="Write this tempo into the song so the whole band gets it">Save to song</button>
       </div>
       <label class="inl">Beats <select id="mBeats"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>9</option><option>12</option></select></label>
       <label class="inl">Count-in <select id="mCount"><option value="0">Off</option><option value="1" selected>1 bar</option><option value="2">2 bars</option></select></label>
       <label class="check"><input type="checkbox" id="mOnly"> Count-in only</label>
+      <label class="check" title="Flash the whole screen on every beat (stronger on beat 1)"><input type="checkbox" id="mFlash"> Flash screen</label>
       <label class="check"><input type="checkbox" id="mScroll"> Then auto-scroll</label>
       <label class="inl">Vol <input id="mVol" type="range" min="0.1" max="1" step="0.05" value="0.7"></label>
       <div id="beatDots" aria-hidden="true"></div>
@@ -169,20 +171,21 @@
 
 <dialog id="dlgSettings">
   <form method="dialog" id="formSettings">
-    <h2>Google Drive</h2>
-    <p class="hint">Songs live in one shared Drive folder. Your annotations are stored privately in your own account.</p>
-    <label>Google OAuth client ID
-      <input id="setClientId" placeholder="123456-abc.apps.googleusercontent.com" autocomplete="off">
-    </label>
-    <label>Band folder (paste the Drive folder link or ID)
-      <input id="setFolder" placeholder="https://drive.google.com/drive/folders/..." autocomplete="off">
-    </label>
-    <div class="row">
-      <button type="button" id="btnConnect">Connect Google</button>
-      <button type="button" id="btnMakeFolder">Create band folder</button>
-      <span id="driveUser" class="hint"></span>
+    <div id="bandBox">
+      <h2>Your band</h2>
+      <div id="joinBox">
+        <p class="hint">Ask whoever set up the band for the invite code. You join once; this device then stays signed in.</p>
+        <label>Invite code<input id="setCode" autocomplete="off" autocapitalize="off"></label>
+        <label>Your name<input id="setName" autocomplete="off" placeholder="So the band knows who made changes"></label>
+        <label>Band server address<input id="setServer" autocomplete="off" placeholder="https://bandbook.yourname.workers.dev"></label>
+        <div class="row"><button type="button" id="btnJoin" class="primary">Join band</button></div>
+      </div>
+      <div id="joinedBox" hidden>
+        <p id="joinedInfo"></p>
+        <p class="hint">Songs, PDFs and set lists are shared with everyone in the band. Your annotations stay private to you.</p>
+        <div class="row"><button type="button" id="btnMembers">Members&hellip;</button><button type="button" id="btnLeave">Leave band on this device</button></div>
+      </div>
     </div>
-    <p class="hint" id="folderHint"></p>
     <div id="backupBox">
       <h2>Backup</h2>
       <p class="hint">One file with everything on this device: songs, PDFs, your annotations, set lists and preferences.</p>
@@ -194,9 +197,7 @@
       </div>
     </div>
     <div class="row end">
-      <button type="button" id="btnDisconnect">Disconnect</button>
-      <button value="cancel">Close</button>
-      <button type="submit" value="save" class="primary">Save</button>
+      <button class="primary" value="cancel">Close</button>
     </div>
   </form>
 </dialog>
@@ -207,7 +208,7 @@
     <button id="mInfo">Song info, tempo, audio…</button>
     <button id="mAddSet">Add to set…</button>
     <button id="mMove">Move to folder…</button>
-    <button id="mShare">Upload to band folder</button>
+    <button id="mShare">Share with the band</button>
     <button id="mCopy">Make personal copy</button>
     <button id="mExportCho">Download chart (.cho)</button>
     <button id="mExportBundle">Download my copy with annotations</button>
@@ -223,7 +224,7 @@
     <button id="sAdd">Add songs…</button>
     <button id="sGap">Gap between songs…</button>
     <button id="sRename">Rename</button>
-    <button id="sShare">Upload to band folder</button>
+    <button id="sShare">Share with the band</button>
     <button id="sDup">Duplicate</button>
     <button id="sDelete" class="danger">Delete set</button>
   </div>
@@ -267,6 +268,14 @@
   </form>
 </dialog>
 
+<dialog id="dlgMembers">
+  <form method="dialog">
+    <h2>Band members</h2>
+    <ul id="memberList" style="list-style:none;padding:0;margin:0 0 10px"></ul>
+    <div class="row end"><button class="primary" value="close">Close</button></div>
+  </form>
+</dialog>
+
 <dialog id="dlgInfo">
   <form method="dialog" id="formInfo">
     <h2>Song info</h2>
@@ -297,6 +306,7 @@
   <div class="row end"><button id="askCancel">Cancel</button><button id="askOk" class="primary">OK</button></div>
 </dialog>
 
+<div id="beatFlash" aria-hidden="true"></div>
 <div id="toast" role="status"></div>
 <script type="module" src="js/app.js"></script>
 </body>

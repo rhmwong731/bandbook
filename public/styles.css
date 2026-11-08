@@ -227,3 +227,11 @@ dialog label input:not([type=checkbox]):not([type=range]), dialog label select {
 .checklist .warn .mk { color: #ffb020; }
 .checklist .bad .mk { color: #e5484d; }
 .checklist .hintline { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+
+#beatFlash { position: fixed; inset: 0; z-index: 90; pointer-events: none; background: #fff; opacity: 0; }
+#beatFlash.go { animation: beatflash .16s ease-out; }
+#beatFlash.go.first { animation-name: beatflash1; background: #ffd479; }
+#beatFlash.go.count { background: #ffb020; }
+@keyframes beatflash { from { opacity: .28 } to { opacity: 0 } }
+@keyframes beatflash1 { from { opacity: .5 } to { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) { #beatFlash.go { animation-duration: .01s; } }

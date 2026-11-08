@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import * as db from '../js/store.js';
-import { buildBackup, restoreBackup, validate } from '../js/backup.js';
+import * as db from '../public/js/store.js';
+import { buildBackup, restoreBackup, validate } from '../public/js/backup.js';
 
 // (node has no IndexedDB: the store falls back to its in-memory maps, which is what we test through)
 const song = db.makeSong({ text: '{title: One}\n[G]hi', folder: 'Originals' });

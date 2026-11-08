@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { parseChordPro, transposeChord, transposeKey, transposeText, convertChordsOverLyrics, CHORD_RE, parseDuration, formatDuration, setDirective, toNumeral, keyRoot, chordsOf } from '../js/chordpro.js';
+import { parseChordPro, transposeChord, transposeKey, transposeText, convertChordsOverLyrics, CHORD_RE, parseDuration, formatDuration, setDirective, toNumeral, keyRoot, chordsOf } from '../public/js/chordpro.js';
 
 // chord regex
 for (const c of ['Am7', 'F#m', 'Cmaj7', 'G/B', 'Dsus4', 'E7b9', 'Bb', 'C#dim7', 'Gadd9', 'A5', 'D/F#'])

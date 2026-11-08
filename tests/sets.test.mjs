@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { itemFor, resolve, resolveAll, refreshItems, move, serializeSetlist, parseSetlist, setlistFileName } from '../js/sets.js';
+import { itemFor, resolve, resolveAll, refreshItems, move, serializeSetlist, parseSetlist, setlistFileName } from '../public/js/sets.js';
 
 const songs = [
   { id: 'a1', driveId: 'D1', title: 'Amazing Grace' },
@@ -36,7 +36,7 @@ assert.equal(setlistFileName({ name: 'Sat/Sun: Gig' }), 'Sat-Sun- Gig.setlist.js
 
 console.log('sets tests passed');
 
-import { setStats as _ss, serializeSetlist as _ser, parseSetlist as _par } from '../js/sets.js';
+import { setStats as _ss, serializeSetlist as _ser, parseSetlist as _par } from '../public/js/sets.js';
 {
   const songs = [{ id: 'a', title: 'A', dur: 200 }, { id: 'b', title: 'B', dur: 0 }, { id: 'c', title: 'C', dur: 100 }];
   const set = { name: 'S', gap: 30, items: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B' }, { id: 'c', title: 'C' }, { id: 'zz', title: 'Gone' }] };

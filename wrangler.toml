@@ -1,0 +1,22 @@
+# BandBook on Cloudflare: the app and the band's data in one Worker.
+# `node worker/setup.mjs` fills in the two ids below and deploys.
+name = "bandbook"
+main = "worker/index.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+BAND_NAME = "Our Band"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bandbook"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[[kv_namespaces]]
+binding = "FILES"
+id = "00000000000000000000000000000000"

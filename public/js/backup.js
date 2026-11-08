@@ -2,7 +2,7 @@
 // One JSON file; binary files are base64. Restore either merges (newer wins, nothing deleted) or replaces everything.
 import * as db from './store.js';
 
-const SETTING_KEYS = ['folders', 'collapsed', 'voicings', 'instrument', 'chordStyle', 'darkPage', 'penOnly', 'metroVolume', 'countIn', 'gapDefault'];
+const SETTING_KEYS = ['folders', 'collapsed', 'voicings', 'instrument', 'chordStyle', 'darkPage', 'penOnly', 'metroVolume', 'metroFlash', 'countIn', 'gapDefault'];
 
 async function toB64(blob) {
   const u = new Uint8Array(await blob.arrayBuffer());

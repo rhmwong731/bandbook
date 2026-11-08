@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { assess } from '../js/offline.js';
+import { assess } from '../public/js/offline.js';
 const good = { sw: { supported: true, controlled: true, cached: 20, total: 20 }, songs: 12, missingFiles: 0, unsynced: 0, lastSync: 1, lastSyncText: '6:30 PM', persisted: true, installed: true };
 assert.equal(assess(good).level, 'ready');
 assert.equal(assess({ ...good, persisted: false, installed: true }).level, 'ready');

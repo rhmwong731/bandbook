@@ -6,8 +6,8 @@ import { renderDoc, closeDoc } from './docview.js';
 import { assess } from './offline.js';
 import { buildBackup, restoreBackup, backupName } from './backup.js';
 import { InkLayer } from './ink.js';
-import * as drive from './drive.js';
-import { syncAll, shareSong, shareSetlist } from './sync.js';
+import * as srv from './server.js';
+import { syncAll, shareSong, shareSetlist, removeSongEverywhere, removeSetEverywhere, keepOffDevice } from './sync.js';
 import * as sets from './sets.js';
 import { enableDrag } from './dnd.js';
 import { byOrder, insertAmong, moveIndex } from './order.js';
@@ -305,6 +305,7 @@ $('editor').addEventListener('input', () => {
   const s = state.cur;
   if (!s) return;
   s.text = $('editor').value;
+  s.demo = false;
   db.refreshMeta(s);
   s.dirty = !!s.driveId;
   s.updatedAt = Date.now();
@@ -714,8 +715,13 @@ $('sDelete').onclick = async () => {
   $('dlgSet').close();
   const x = currentSet();
   if (!x) return;
-  const msg = `Delete the set "${x.name}"? The songs stay in your library.` + (x.driveId ? '\nThe shared copy in Drive is not deleted and will come back on the next sync. Delete it in Drive to remove it for everyone.' : '');
-  if (!(await askDialog({ message: msg, ok: 'Delete set' }))) return;
+  if (!(await askDialog({ message: `Delete the set "${x.name}"? The songs stay in your library.`, ok: 'Delete set' }))) return;
+  if (x.driveId) {
+    const everyone = await askDialog({ message: 'This set is shared with the band. Delete it for everyone too?\nChoose Cancel to remove it from this device only.', ok: 'Delete for everyone' });
+    try {
+      if (everyone) await removeSetEverywhere(x); else keepOffDevice(x.id);
+    } catch (e) { return toast(e.message, 5000); }
+  }
   await db.del('setlists', x.id);
   state.setId = null;
   if (state.activeSet === x.id) state.activeSet = null;
@@ -728,11 +734,11 @@ $('sShare').onclick = async () => {
   const x = currentSet();
   if (!x) return;
   try {
-    toast('Uploading…');
+    toast('Sharing…');
     const missing = await shareSetlist(x);
     await loadSets();
     renderList();
-    toast(missing ? `Uploaded. ${missing} song${missing > 1 ? 's are' : ' is'} not in the band folder yet, so bandmates will not see ${missing > 1 ? 'them' : 'it'} until you upload ${missing > 1 ? 'them' : 'it'}.` : 'Set uploaded to the band folder', 6500);
+    toast(missing ? `Shared. ${missing} song${missing > 1 ? 's are' : ' is'} not shared with the band yet, so bandmates will not see ${missing > 1 ? 'them' : 'it'} until you share ${missing > 1 ? 'them' : 'it'}.` : 'Set shared with the band', 6500);
   } catch (e) { toast(e.message, 5000); }
 };
 
@@ -930,15 +936,21 @@ $('mCopy').onclick = async () => {
 };
 $('mShare').onclick = async () => {
   try {
-    toast('Uploading…');
+    toast('Sharing…');
     await shareSong(state.cur);
     await loadSongs();
-    toast('Uploaded to the band folder');
+    toast('Shared with the band');
   } catch (e) { toast(e.message, 5000); }
   $('dlgMore').close();
 };
 $('mDelete').onclick = async () => {
-  if (!(await askDialog({ ok: 'Remove', message: `Remove "${state.cur.title}" from this device?\nIf it is in the band folder it will come back on the next sync (delete it in Drive to remove it for everyone).` }))) return;
+  if (!(await askDialog({ ok: 'Remove', message: `Remove "${state.cur.title}" from this device?` }))) return;
+  if (state.cur.driveId) {
+    const everyone = await askDialog({ message: 'This song is shared with the band. Delete it for everyone too?\nChoose Cancel to remove it from this device only (it will not come back on later syncs).', ok: 'Delete for everyone' });
+    try {
+      if (everyone) await removeSongEverywhere(state.cur); else keepOffDevice(state.cur.id);
+    } catch (e) { return toast(e.message, 5000); }
+  }
   metroStop();
   await db.del('songs', state.cur.id);
   await db.del('ink', state.cur.id);
@@ -961,45 +973,65 @@ function showEmpty() {
 
 // ---------- settings + sync ----------
 function fillSettings() {
-  $('setClientId').value = db.settings.get('clientId', '');
-  $('setFolder').value = db.settings.get('folderId', '');
-  $('folderHint').textContent = db.settings.get('folderId', '')
-    ? 'Everyone in the band needs edit access to this folder (Drive > Share).'
-    : 'Create a folder in Drive and share it with your bandmates, or let BandBook create one for you.';
-  $('driveUser').textContent = drive.isSignedIn() ? 'Connected' : '';
+  const joined = srv.isJoined();
+  $('joinBox').hidden = joined;
+  $('joinedBox').hidden = !joined;
+  $('setServer').value = srv.serverUrl() || (location.protocol.startsWith('http') ? location.origin : '');
+  $('setName').value = srv.memberName() || db.settings.get('lastName', '');
+  $('setCode').value = '';
+  $('joinedInfo').textContent = joined ? `Joined ${srv.bandName() || 'the band'} as ${srv.memberName()}.` : '';
 }
 $('btnSettings').onclick = () => { fillSettings(); $('dlgSettings').showModal(); };
 
-function saveSettings() {
-  db.settings.set('clientId', $('setClientId').value.trim());
-  const f = drive.folderIdFromInput($('setFolder').value);
-  if ($('setFolder').value.trim() && !f) toast('That does not look like a Drive folder link');
-  db.settings.set('folderId', f);
-}
-$('formSettings').addEventListener('submit', (e) => {
-  if (e.submitter && e.submitter.value === 'save') saveSettings();
-});
-$('btnConnect').onclick = async () => {
+$('btnJoin').onclick = async () => {
+  const code = $('setCode').value.trim();
+  const name = $('setName').value.trim();
+  if (!name) return toast('Enter your name first');
+  if (!code) return toast('Enter the invite code');
+  $('btnJoin').disabled = true;
   try {
-    saveSettings();
-    await drive.signIn();
-    const u = await drive.whoAmI();
-    $('driveUser').textContent = 'Connected as ' + (u.emailAddress || u.displayName);
-  } catch (e) { toast(e.message, 5000); }
+    db.settings.set('lastName', name);
+    const r = await srv.join($('setServer').value, code, name);
+    fillSettings();
+    toast(`Welcome to ${r.band}. Tap Sync to get the band's songs.`, 5000);
+  } catch (e) { toast(e.message, 6000); }
+  finally { $('btnJoin').disabled = false; }
 };
-$('btnMakeFolder').onclick = async () => {
+$('btnLeave').onclick = async () => {
+  if (!(await askDialog({ ok: 'Leave band', message: 'Leave the band on this device? Everything already on this device stays. You can join again with the invite code.' }))) return;
+  srv.leave();
+  fillSettings();
+  updateSyncState();
+};
+$('btnMembers').onclick = async () => {
+  const code = await askDialog({ message: 'Admin code (set up when the band server was installed):', input: true, single: true, ok: 'Show members' });
+  if (!code) return;
   try {
-    saveSettings();
-    const f = await drive.createFolder('BandBook Songs');
-    db.settings.set('folderId', f.id);
-    $('setFolder').value = f.webViewLink || f.id;
-    $('folderHint').textContent = 'Folder created. Open it in Drive and share it with your bandmates (Editor access).';
-  } catch (e) { toast(e.message, 5000); }
+    const list = await srv.members(code);
+    const ul = $('memberList');
+    ul.textContent = '';
+    for (const m of list) {
+      const li = document.createElement('li');
+      li.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 0';
+      const t = document.createElement('span');
+      t.textContent = `${m.name}  \u00b7  joined ${new Date(m.created).toLocaleDateString()}`;
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'Remove';
+      b.onclick = async () => {
+        if (!(await askDialog({ ok: 'Remove', message: `Remove ${m.name} from the band? Their device will be locked out of the band.` }))) return;
+        try { await srv.removeMember(code, m.id); li.remove(); toast('Removed ' + m.name); } catch (e) { toast(e.message, 5000); }
+      };
+      li.append(t, b);
+      ul.append(li);
+    }
+    if (!list.length) ul.textContent = 'No members yet.';
+    $('dlgSettings').close();
+    $('dlgMembers').showModal();
+  } catch (e) { toast(e.status === 403 ? 'That admin code is not right.' : e.message, 5000); }
 };
-$('btnDisconnect').onclick = () => { drive.signOut(); fillSettings(); toast('Disconnected'); };
 
 $('btnSync').onclick = async () => {
-  if (!drive.isConfigured() || !db.settings.get('folderId', '')) { fillSettings(); $('dlgSettings').showModal(); return; }
+  if (!srv.isJoined()) { fillSettings(); $('dlgSettings').showModal(); return; }
   const btn = $('btnSync');
   btn.disabled = true;
   try {
@@ -1107,7 +1139,8 @@ $('instrument').onchange = (e) => { db.settings.set('instrument', e.target.value
 const metro = new Metronome();
 let tapTimes = [];
 const meta = () => (state.cur ? db.metaOf(state.cur) : {});
-const effTempo = () => clampBpm((state.ink && state.ink.tempo) || Number(meta().tempo) || 100);
+// the chart's {tempo} is the source of truth; a personal tempo is only used when the chart has none
+const effTempo = () => clampBpm(Number(meta().tempo) || (state.ink && state.ink.tempo) || 100);
 
 function buildDots() {
   const box = $('beatDots');
@@ -1117,12 +1150,13 @@ function buildDots() {
 function setBpm(n, personal = true) {
   metro.bpm = clampBpm(n);
   $('mBpm').value = metro.bpm;
-  if (personal && state.ink && state.ink.tempo !== metro.bpm) {
+  if (personal && !Number(meta().tempo) && state.ink && state.ink.tempo !== metro.bpm) {
     state.ink.tempo = metro.bpm;
     state.ink.updatedAt = Date.now();
     state.ink.dirty = true;
     saveInkSoon();
   }
+  if (typeof updateTempoHint === 'function' && state.cur) updateTempoHint();
 }
 function syncMetroPanel() {
   if (metro.running) return;
@@ -1131,7 +1165,40 @@ function syncMetroPanel() {
   $('mBeats').value = String(metro.beats);
   if (![...$('mBeats').options].some((o) => o.value === String(metro.beats))) $('mBeats').value = '4', (metro.beats = 4);
   buildDots();
-  $('mHint').textContent = (state.ink && state.ink.tempo) ? 'your tempo for this song' : (meta().tempo ? 'tempo from the chart' : '');
+  updateTempoHint();
+}
+function updateTempoHint() {
+  const ct = Number(meta().tempo);
+  $('mSave').hidden = !state.cur || (ct && clampBpm(ct) === metro.bpm);
+  $('mHint').textContent = ct ? (clampBpm(ct) === metro.bpm ? 'song tempo' : `song tempo is ${ct}`) : (state.ink && state.ink.tempo ? 'your tempo (not saved to the song)' : 'no tempo saved for this song');
+}
+const flashEl = () => $('beatFlash');
+function flashBeat(first, countIn) {
+  if (!$('mFlash').checked) return;
+  const el = flashEl();
+  el.classList.remove('go', 'first', 'count');
+  void el.offsetWidth; // restart the animation
+  el.classList.add('go');
+  if (first) el.classList.add('first');
+  if (countIn) el.classList.add('count');
+}
+async function saveTempoToSong() {
+  const song = state.cur;
+  if (!song) return;
+  const bpm = String(metro.bpm);
+  if (db.isDoc(song)) song.info = { ...(song.info || {}), tempo: bpm };
+  else {
+    song.text = setDirective(song.text, 'tempo', bpm);
+    db.refreshMeta(song);
+    song.dirty = !!song.driveId;
+    if (state.mode === 'edit') $('editor').value = song.text;
+  }
+  song.updatedAt = Date.now();
+  await db.put('songs', song);
+  await reloadKeepCur();
+  updateTempoHint();
+  updateSyncState();
+  toast(`Saved ${bpm} bpm to “${song.title}”`);
 }
 function metroStop() {
   if (!metro.running) return;
@@ -1148,6 +1215,7 @@ function metroStart() {
   metro.beats = Number($('mBeats').value);
   buildDots();
   metro.onBeat = (beat, countIn) => {
+    flashBeat(beat === 0, countIn);
     document.querySelectorAll('#beatDots i').forEach((d, i) => { d.classList.toggle('on', i === beat); d.classList.toggle('count', countIn); });
   };
   metro.onCountInDone = () => {
@@ -1176,6 +1244,8 @@ $('mBpm').onchange = (e) => setBpm(e.target.value);
 $('mBeats').onchange = (e) => { metro.beats = Number(e.target.value); buildDots(); };
 $('mVol').oninput = (e) => { metro.volume = Number(e.target.value); db.settings.set('metroVolume', metro.volume); };
 $('mCount').onchange = (e) => { metro.countBars = Number(e.target.value); db.settings.set('countIn', e.target.value); };
+$('mSave').onclick = saveTempoToSong;
+$('mFlash').onchange = (e) => db.settings.set('metroFlash', e.target.checked);
 $('mTap').onclick = () => {
   const now = performance.now();
   if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2500) tapTimes = [];
@@ -1418,12 +1488,15 @@ async function boot() {
   $('chordStyle').value = db.settings.get('chordStyle', 'letters');
   $('mVol').value = db.settings.get('metroVolume', 0.7);
   $('mCount').value = db.settings.get('countIn', '1');
+  $('mFlash').checked = !!db.settings.get('metroFlash', false);
   metro.volume = Number($('mVol').value);
   applyDark(db.settings.get('darkPage', false));
   await loadSongs();
   await loadSets();
   if (!state.songs.length && !db.settings.get('seeded', false)) {
-    await db.put('songs', db.makeSong({ text: DEMO }));
+    const demo = db.makeSong({ text: DEMO });
+    demo.demo = true; // unedited sample song: replaced by the band's songs on first sync
+    await db.put('songs', demo);
     db.settings.set('seeded', true);
     await loadSongs();
   }

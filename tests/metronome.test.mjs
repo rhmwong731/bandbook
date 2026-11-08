@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { tapTempo, clampBpm, beatsPerBar } from '../js/metronome.js';
+import { tapTempo, clampBpm, beatsPerBar } from '../public/js/metronome.js';
 assert.equal(tapTempo([0]), 0);
 assert.equal(tapTempo([0, 500]), 120);
 assert.equal(tapTempo([0, 600, 1200, 1800]), 100);

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { byOrder, insertAmong, moveIndex } from '../js/order.js';
+import { byOrder, insertAmong, moveIndex } from '../public/js/order.js';
 
 const mk = (id, title, order) => ({ id, title, ...(order === undefined ? {} : { order }) });
 

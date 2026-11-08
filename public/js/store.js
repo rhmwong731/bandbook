@@ -56,10 +56,10 @@ export const settings = {
 };
 
 // Song record: { id, text, title, artist, key, driveId, remoteModified, dirty, updatedAt }
-export function makeSong({ text, driveId = null, remoteModified = null, fileName = '', folder = '', driveParent = null }) {
+export function makeSong({ id, text, driveId = null, remoteModified = null, fileName = '', folder = '', driveParent = null }) {
   const meta = parseChordPro(text).meta;
   return {
-    id: newId(),
+    id: id || newId(),
     text,
     title: meta.title || fileName.replace(/\.[^.]+$/, '') || 'Untitled',
     artist: meta.artist || '',
@@ -67,9 +67,9 @@ export function makeSong({ text, driveId = null, remoteModified = null, fileName
     driveId,
     remoteModified,
     dirty: false,
-    folder,            // '' = Unfiled. Maps to a sub-folder of the band folder on Drive
-    driveParent,       // Drive id of the folder the file currently sits in
-    folderDirty: false, // moved locally, move not yet pushed to Drive
+    folder,            // '' = Unfiled
+    driveParent,       // (unused now, kept so old data still loads)
+    folderDirty: false, // moved locally, move not yet pushed to the band
     updatedAt: Date.now(),
   };
 }

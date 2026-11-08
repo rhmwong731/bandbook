@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { voicings, parseChord, renderSvg } from '../js/diagram.js';
+import { voicings, parseChord, renderSvg } from '../public/js/diagram.js';
 
 const shape = (v) => v.frets.map((f) => (f < 0 ? 'x' : f)).join('');
 const top = (c, i = 'guitar') => shape(voicings(c, i)[0]);

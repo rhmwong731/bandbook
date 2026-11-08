@@ -1,0 +1,237 @@
+// BandBook server: one Cloudflare Worker that serves the app (static assets) and the band's shared data.
+//   D1  (env.DB)     members, charts, set lists, private annotations
+//   KV  (env.FILES)  PDF / image files, join rate-limit counters
+//   Secrets          INVITE_CODE (to join), ADMIN_CODE (optional, to remove members)
+//   Variable         BAND_NAME
+// Auth: joining with the invite code returns a personal token; every other call sends it as "Authorization: Bearer ...".
+
+const MAX_TEXT = 512 * 1024;
+const MAX_FILE = 20 * 1024 * 1024;
+const MAX_INK = 4 * 1024 * 1024;
+const ID_RE = /^[A-Za-z0-9_-]{6,64}$/;
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Admin-Code, X-Mime, X-Name',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+};
+
+const json = (data, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...CORS } });
+const fail = (status, error) => json({ error }, status);
+
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+const sha256 = async (s) => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+const newToken = () => hex(crypto.getRandomValues(new Uint8Array(32)));
+const newId = () => hex(crypto.getRandomValues(new Uint8Array(9)));
+
+async function same(a, b) { // constant-time-ish compare of two secrets
+  const [x, y] = await Promise.all([sha256(String(a)), sha256(String(b))]);
+  let d = 0;
+  for (let i = 0; i < x.length; i++) d |= x.charCodeAt(i) ^ y.charCodeAt(i);
+  return d === 0;
+}
+
+async function nextSeq(env) {
+  const r = await env.DB.prepare("UPDATE meta SET value = CAST(value AS INTEGER) + 1 WHERE key = 'seq' RETURNING value").first();
+  return Number(r.value);
+}
+
+async function authenticate(req, env) {
+  const m = (req.headers.get('Authorization') || '').match(/^Bearer ([0-9a-f]{64})$/);
+  if (!m) return null;
+  return env.DB.prepare('SELECT id, name FROM members WHERE token_hash = ? AND revoked = 0').bind(await sha256(m[1])).first();
+}
+
+async function readJson(req, limit) {
+  const text = await req.text();
+  if (text.length > limit) throw new HttpError(413, 'Too large');
+  try { return JSON.parse(text); } catch { throw new HttpError(400, 'Bad JSON'); }
+}
+
+class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
+
+const str = (v, max, d = '') => (typeof v === 'string' ? v.slice(0, max) : d);
+
+// ---------- handlers ----------
+
+async function join(req, env) {
+  const ip = req.headers.get('CF-Connecting-IP') || 'local';
+  const rlKey = 'rl:' + ip;
+  const tries = Number((await env.FILES.get(rlKey)) || 0);
+  if (tries >= 8) return fail(429, 'Too many tries. Wait ten minutes and try again.');
+  const body = await readJson(req, 2000);
+  const name = str(body.name, 40).trim();
+  if (!name) return fail(400, 'Enter your name.');
+  if (!env.INVITE_CODE) return fail(500, 'The server has no invite code set up.');
+  if (!(await same(str(body.code, 100).trim(), env.INVITE_CODE))) {
+    await env.FILES.put(rlKey, String(tries + 1), { expirationTtl: 600 });
+    return fail(403, 'That invite code is not right.');
+  }
+  const token = newToken();
+  const id = newId();
+  await env.DB.prepare('INSERT INTO members (id, name, token_hash, created) VALUES (?, ?, ?, ?)').bind(id, name, await sha256(token), Date.now()).run();
+  return json({ token, member: { id, name }, band: env.BAND_NAME || 'Band' });
+}
+
+async function syncPull(url, env, me) {
+  const since = Math.max(0, Number(url.searchParams.get('since')) || 0);
+  const [songs, sets, ink, folders, seq] = await Promise.all([
+    env.DB.prepare('SELECT id, folder, title, kind, CASE WHEN kind = \'cho\' THEN text ELSE \'\' END AS text, mime, file_name, rev, deleted FROM songs WHERE seq > ?').bind(since).all(),
+    env.DB.prepare('SELECT id, name, json, rev, deleted FROM setlists WHERE seq > ?').bind(since).all(),
+    env.DB.prepare('SELECT song_id, json FROM ink WHERE member_id = ? AND seq > ?').bind(me.id, since).all(),
+    env.DB.prepare("SELECT value FROM meta WHERE key = 'folders'").first(),
+    env.DB.prepare("SELECT value FROM meta WHERE key = 'seq'").first(),
+  ]);
+  return json({ seq: Number(seq.value), songs: songs.results, setlists: sets.results, ink: ink.results, folders: JSON.parse(folders.value) });
+}
+
+async function putSong(req, env, me, id) {
+  const b = await readJson(req, MAX_TEXT + 4000);
+  const kind = ['cho', 'pdf', 'image'].includes(b.kind) ? b.kind : 'cho';
+  const text = kind === 'cho' ? str(b.text, MAX_TEXT) : '';
+  const folder = str(b.folder, 60).trim();
+  const title = str(b.title, 200) || 'Untitled';
+  const cur = await env.DB.prepare('SELECT rev, deleted FROM songs WHERE id = ?').bind(id).first();
+  const seq = await nextSeq(env);
+  const now = Date.now();
+  if (!cur) {
+    await env.DB.prepare('INSERT INTO songs (id, folder, title, kind, text, mime, file_name, rev, seq, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)')
+      .bind(id, folder, title, kind, text, str(b.mime, 100) || null, str(b.file_name, 200) || null, seq, me.name, now).run();
+    return json({ rev: 1, seq });
+  }
+  if (Number(b.baseRev || 0) !== cur.rev) {
+    const row = await env.DB.prepare('SELECT id, folder, title, kind, text, mime, file_name, rev, deleted FROM songs WHERE id = ?').bind(id).first();
+    return json({ error: 'conflict', current: row }, 409);
+  }
+  const rev = cur.rev + 1;
+  await env.DB.prepare('UPDATE songs SET folder = ?, title = ?, kind = ?, text = ?, mime = COALESCE(?, mime), file_name = COALESCE(?, file_name), rev = ?, seq = ?, deleted = 0, updated_by = ?, updated_at = ? WHERE id = ?')
+    .bind(folder, title, kind, text, str(b.mime, 100) || null, str(b.file_name, 200) || null, rev, seq, me.name, now, id).run();
+  return json({ rev, seq });
+}
+
+async function deleteSong(env, me, id) {
+  const cur = await env.DB.prepare('SELECT rev FROM songs WHERE id = ?').bind(id).first();
+  if (!cur) return json({ ok: true });
+  const seq = await nextSeq(env);
+  await env.DB.prepare("UPDATE songs SET deleted = 1, text = '', rev = rev + 1, seq = ?, updated_by = ?, updated_at = ? WHERE id = ?").bind(seq, me.name, Date.now(), id).run();
+  await env.FILES.delete('f:' + id);
+  return json({ ok: true });
+}
+
+async function putFile(req, env, me, id) {
+  const song = await env.DB.prepare('SELECT rev, kind FROM songs WHERE id = ? AND deleted = 0').bind(id).first();
+  if (!song || song.kind === 'cho') return fail(404, 'Create the song first.');
+  const len = Number(req.headers.get('Content-Length') || 0);
+  if (len > MAX_FILE) return fail(413, 'That file is over 20 MB.');
+  const buf = await req.arrayBuffer();
+  if (buf.byteLength > MAX_FILE) return fail(413, 'That file is over 20 MB.');
+  const mime = str(req.headers.get('X-Mime'), 100) || 'application/octet-stream';
+  await env.FILES.put('f:' + id, buf, { metadata: { mime } });
+  const seq = await nextSeq(env);
+  const rev = song.rev + 1;
+  await env.DB.prepare('UPDATE songs SET rev = ?, seq = ?, mime = ?, updated_by = ?, updated_at = ? WHERE id = ?').bind(rev, seq, mime, me.name, Date.now(), id).run();
+  return json({ rev, seq });
+}
+
+async function getFile(env, id) {
+  const { value, metadata } = await env.FILES.getWithMetadata('f:' + id, 'arrayBuffer');
+  if (!value) return fail(404, 'No such file');
+  return new Response(value, { headers: { 'Content-Type': metadata?.mime || 'application/octet-stream', 'Cache-Control': 'no-store', ...CORS } });
+}
+
+async function putSetlist(req, env, me, id) {
+  const b = await readJson(req, 200 * 1024);
+  const cur = await env.DB.prepare('SELECT rev FROM setlists WHERE id = ?').bind(id).first();
+  const seq = await nextSeq(env);
+  const name = str(b.name, 120) || 'Set';
+  const body = typeof b.json === 'string' ? b.json.slice(0, 150 * 1024) : '{}';
+  if (!cur) {
+    await env.DB.prepare('INSERT INTO setlists (id, name, json, rev, seq, updated_by, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?)').bind(id, name, body, seq, me.name, Date.now()).run();
+    return json({ rev: 1, seq });
+  }
+  if (Number(b.baseRev || 0) !== cur.rev) {
+    const row = await env.DB.prepare('SELECT id, name, json, rev, deleted FROM setlists WHERE id = ?').bind(id).first();
+    return json({ error: 'conflict', current: row }, 409);
+  }
+  await env.DB.prepare('UPDATE setlists SET name = ?, json = ?, rev = ?, seq = ?, deleted = 0, updated_by = ?, updated_at = ? WHERE id = ?').bind(name, body, cur.rev + 1, seq, me.name, Date.now(), id).run();
+  return json({ rev: cur.rev + 1, seq });
+}
+
+async function deleteSetlist(env, me, id) {
+  const seq = await nextSeq(env);
+  await env.DB.prepare("UPDATE setlists SET deleted = 1, json = '{}', rev = rev + 1, seq = ?, updated_by = ?, updated_at = ? WHERE id = ?").bind(seq, me.name, Date.now(), id).run();
+  return json({ ok: true });
+}
+
+async function putInk(req, env, me, songId) {
+  const b = await readJson(req, MAX_INK);
+  const body = typeof b.json === 'string' ? b.json : JSON.stringify(b.json || {});
+  if (body.length > MAX_INK) return fail(413, 'Too many annotations on one song.');
+  const seq = await nextSeq(env);
+  await env.DB.prepare('INSERT INTO ink (member_id, song_id, json, seq, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(member_id, song_id) DO UPDATE SET json = excluded.json, seq = excluded.seq, updated_at = excluded.updated_at')
+    .bind(me.id, songId, body, seq, Date.now()).run();
+  return json({ seq });
+}
+
+async function putFolders(req, env) {
+  const b = await readJson(req, 10000);
+  const list = Array.isArray(b.folders) ? b.folders.map((f) => str(f, 60).trim()).filter(Boolean) : [];
+  const cur = JSON.parse((await env.DB.prepare("SELECT value FROM meta WHERE key = 'folders'").first()).value);
+  const merged = [...cur];
+  for (const f of list) if (!merged.includes(f) && merged.length < 60) merged.push(f);
+  await env.DB.prepare("UPDATE meta SET value = ? WHERE key = 'folders'").bind(JSON.stringify(merged)).run();
+  return json({ folders: merged });
+}
+
+async function admin(req, env, url) {
+  if (!env.ADMIN_CODE || !(await same(req.headers.get('X-Admin-Code') || '', env.ADMIN_CODE))) return fail(403, 'Admin code needed.');
+  if (req.method === 'GET') {
+    const r = await env.DB.prepare('SELECT id, name, created FROM members WHERE revoked = 0 ORDER BY created').all();
+    return json({ members: r.results });
+  }
+  const m = url.pathname.match(/^\/api\/members\/([A-Za-z0-9_-]+)$/);
+  if (req.method === 'DELETE' && m) {
+    await env.DB.prepare('UPDATE members SET revoked = 1 WHERE id = ?').bind(m[1]).run();
+    return json({ ok: true });
+  }
+  return fail(404, 'Not found');
+}
+
+// ---------- router ----------
+
+export default {
+  async fetch(req, env) {
+    const url = new URL(req.url);
+    if (!url.pathname.startsWith('/api/')) return env.ASSETS ? env.ASSETS.fetch(req) : new Response('Not found', { status: 404 });
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+    try {
+      const p = url.pathname;
+      const M = req.method;
+      if (p === '/api/health') return json({ ok: true, band: env.BAND_NAME || 'Band' });
+      if (p === '/api/join' && M === 'POST') return await join(req, env);
+      if (p === '/api/members' || p.startsWith('/api/members/')) return await admin(req, env, url);
+
+      const me = await authenticate(req, env);
+      if (!me) return fail(401, 'Not signed in to the band.');
+      if (p === '/api/me') return json({ member: me, band: env.BAND_NAME || 'Band' });
+      if (p === '/api/sync' && M === 'GET') return await syncPull(url, env, me);
+      if (p === '/api/folders' && M === 'PUT') return await putFolders(req, env);
+
+      let m;
+      if ((m = p.match(/^\/api\/(songs|files|setlists|ink)\/([A-Za-z0-9_-]+)$/))) {
+        const [, kind, id] = m;
+        if (!ID_RE.test(id)) return fail(400, 'Bad id');
+        if (kind === 'songs') { if (M === 'PUT') return await putSong(req, env, me, id); if (M === 'DELETE') return await deleteSong(env, me, id); }
+        if (kind === 'files') { if (M === 'PUT') return await putFile(req, env, me, id); if (M === 'GET') return await getFile(env, id); }
+        if (kind === 'setlists') { if (M === 'PUT') return await putSetlist(req, env, me, id); if (M === 'DELETE') return await deleteSetlist(env, me, id); }
+        if (kind === 'ink' && M === 'PUT') return await putInk(req, env, me, id);
+      }
+      return fail(404, 'Not found');
+    } catch (e) {
+      if (e instanceof HttpError) return fail(e.status, e.message);
+      return fail(500, 'Server error');
+    }
+  },
+};
