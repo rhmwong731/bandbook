@@ -1,0 +1,10 @@
+{
+  "name": "bandbook",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "for f in tests/*.test.mjs; do node $f || exit 1; done"
+  }
+}

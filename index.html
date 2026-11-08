@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BandBook</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#1b1f27">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="side-head"><h1>BandBook</h1><span id="syncState"></span></div>
+    <button id="offlineChip" class="offchip" hidden title="Is this device ready to work without internet?"></button>
+    <div class="tabs"><button id="tabSongs" class="on">Songs</button><button id="tabSets">Sets</button></div>
+    <input id="search" type="search" placeholder="Search songs" autocomplete="off">
+    <ul id="songlist"></ul>
+    <div class="side-foot">
+      <div id="footSongs" class="foot-group">
+        <button id="btnNew">+ Song</button>
+        <button id="btnFolder">+ Folder</button>
+        <button id="btnImport">Import</button>
+      </div>
+      <div id="footSets" class="foot-group" hidden>
+        <button id="btnSet">+ Set</button>
+      </div>
+      <button id="btnSync">Sync</button>
+      <button id="btnSettings" title="Settings">Settings</button>
+      <input type="file" id="fileInput" multiple hidden accept=".cho,.crd,.chopro,.chordpro,.pro,.txt,.json,.pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*">
+    </div>
+  </aside>
+
+  <main id="main">
+    <header id="topbar">
+      <button id="btnMenu" class="only-narrow" title="Songs">Songs</button>
+      <div id="curTitle">BandBook</div>
+      <div class="group" id="setNav" hidden>
+        <button id="setPrev" title="Previous song in set (Left arrow)">&lsaquo;</button>
+        <span id="setPos"></span>
+        <button id="setNext" title="Next song in set (Right arrow)">&rsaquo;</button>
+      </div>
+      <div class="group" id="modeGroup">
+        <button id="btnPlay" class="on">Play</button>
+        <button id="btnEdit">Edit</button>
+      </div>
+      <div class="group" id="transposeGroup">
+        <button id="trDown" title="Transpose down">&minus;</button>
+        <span id="trLabel">0</span>
+        <button id="trUp" title="Transpose up">+</button>
+      </div>
+      <div class="group" id="viewGroup">
+        <select id="chordStyle" title="How chords are shown">
+          <option value="letters">Chords: A B C</option>
+          <option value="nashville">Chords: 1 4 5</option>
+          <option value="roman">Chords: I IV V</option>
+        </select>
+        <button id="btnChords" title="Chord diagrams for this song">Diagrams</button>
+        <button id="btnDark" title="Dark page (easier on the eyes on a dark stage)">Dark</button>
+      </div>
+      <div class="group" id="zoomGroup">
+        <button id="zoomOut" title="Smaller">A&minus;</button>
+        <button id="zoomIn" title="Larger">A+</button>
+      </div>
+      <div class="group" id="scrollGroup">
+        <button id="btnScroll">Scroll</button>
+        <input id="scrollSpeed" type="range" min="5" max="120" value="30" title="Auto-scroll speed">
+      </div>
+      <button id="btnMetro" title="Metronome and count-in">Metronome</button>
+      <button id="btnStage" title="Stage view: big, distraction-free, for performing">Stage</button>
+      <button id="btnMore" title="More">More</button>
+    </header>
+
+    <div id="metroPanel" class="panel" hidden>
+      <div class="group">
+        <button id="mBpmDown" title="Slower">&minus;</button>
+        <input id="mBpm" type="number" min="30" max="300" value="100" title="Beats per minute">
+        <button id="mBpmUp" title="Faster">+</button>
+        <button id="mTap" title="Tap along to set the tempo">Tap</button>
+      </div>
+      <label class="inl">Beats <select id="mBeats"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>9</option><option>12</option></select></label>
+      <label class="inl">Count-in <select id="mCount"><option value="0">Off</option><option value="1" selected>1 bar</option><option value="2">2 bars</option></select></label>
+      <label class="check"><input type="checkbox" id="mOnly"> Count-in only</label>
+      <label class="check"><input type="checkbox" id="mScroll"> Then auto-scroll</label>
+      <label class="inl">Vol <input id="mVol" type="range" min="0.1" max="1" step="0.05" value="0.7"></label>
+      <div id="beatDots" aria-hidden="true"></div>
+      <button id="mGo" class="primary">Start</button>
+      <span class="hint" id="mHint"></span>
+    </div>
+
+    <div id="chordStrip" class="panel" hidden>
+      <label class="inl">Instrument <select id="instrument"><option value="guitar">Guitar</option><option value="ukulele">Ukulele</option></select></label>
+      <div id="chordCards"></div>
+    </div>
+
+    <div id="audioBar" class="panel" hidden>
+      <audio id="audioEl" preload="metadata"></audio>
+      <button id="aPlay" title="Play / pause">Play</button>
+      <input id="aSeek" type="range" min="0" max="1000" value="0">
+      <span id="aTime">0:00</span>
+      <select id="aSpeed" title="Playback speed"><option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="0.9">0.9x</option><option value="1" selected>1x</option><option value="1.1">1.1x</option><option value="1.25">1.25x</option></select>
+      <label class="check"><input type="checkbox" id="aLoop"> Loop</label>
+      <a id="aLink" target="_blank" rel="noopener noreferrer" hidden>Open audio link</a>
+    </div>
+
+    <div id="annobar">
+      <div class="group" id="tools">
+        <button data-tool="off" class="on" title="Scroll / view only">View</button>
+        <button data-tool="pen" title="Pen">Pen</button>
+        <button data-tool="highlighter" title="Highlighter">Highlight</button>
+        <button data-tool="eraser" title="Eraser (removes whole strokes)">Erase</button>
+        <button data-tool="text" title="Typed note">Note</button>
+      </div>
+      <div class="group" id="colors">
+        <button class="swatch on" data-color="#d11a2a" style="--c:#d11a2a" title="Red"></button>
+        <button class="swatch" data-color="#1b5bd8" style="--c:#1b5bd8" title="Blue"></button>
+        <button class="swatch" data-color="#1c8a3c" style="--c:#1c8a3c" title="Green"></button>
+        <button class="swatch" data-color="#ffd21f" style="--c:#ffd21f" title="Yellow"></button>
+        <button class="swatch" data-color="#111111" style="--c:#111111" title="Black"></button>
+      </div>
+      <select id="penWidth" title="Line width">
+        <option value="2">Thin</option>
+        <option value="3" selected>Medium</option>
+        <option value="6">Thick</option>
+      </select>
+      <div class="group">
+        <button id="inkUndo">Undo</button>
+        <button id="inkRedo">Redo</button>
+        <button id="inkClear">Clear</button>
+      </div>
+      <label class="check" title="Fingers scroll, only an Apple Pencil / stylus draws"><input type="checkbox" id="penOnly" checked> Stylus only</label>
+    </div>
+
+    <div id="viewport">
+      <div id="scaler">
+        <div id="page">
+          <div id="sheet"></div>
+          <canvas id="ink"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="stageBar" hidden>
+      <button id="sgExit" title="Leave stage view (Esc)">Exit</button>
+      <button id="sgPrev" title="Previous song in set">&lsaquo;</button>
+      <span id="sgTitle"></span>
+      <button id="sgNext" title="Next song in set">&rsaquo;</button>
+      <button id="sgScroll">Scroll</button>
+      <button id="sgSmall">A&minus;</button>
+      <button id="sgBig">A+</button>
+      <button id="sgMetro">Metronome</button>
+      <button id="sgChords">Diagrams</button>
+      <button id="sgDark">Dark</button>
+    </div>
+
+    <div id="editorWrap" hidden>
+      <div id="editorBar">
+        <button data-ins="{start_of_verse: Verse}\n\n{end_of_verse}\n">Verse</button>
+        <button data-ins="{start_of_chorus}\n\n{end_of_chorus}\n">Chorus</button>
+        <button data-ins="{start_of_bridge}\n\n{end_of_bridge}\n">Bridge</button>
+        <button data-ins="{comment: }">Comment</button>
+        <button id="btnConvert" title="Turn chords-above-lyrics text into [C]inline chords. Converts the selection, or everything if nothing is selected.">Convert chords-over-lyrics</button>
+      </div>
+      <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+    </div>
+  </main>
+</div>
+
+<dialog id="dlgSettings">
+  <form method="dialog" id="formSettings">
+    <h2>Google Drive</h2>
+    <p class="hint">Songs live in one shared Drive folder. Your annotations are stored privately in your own account.</p>
+    <label>Google OAuth client ID
+      <input id="setClientId" placeholder="123456-abc.apps.googleusercontent.com" autocomplete="off">
+    </label>
+    <label>Band folder (paste the Drive folder link or ID)
+      <input id="setFolder" placeholder="https://drive.google.com/drive/folders/..." autocomplete="off">
+    </label>
+    <div class="row">
+      <button type="button" id="btnConnect">Connect Google</button>
+      <button type="button" id="btnMakeFolder">Create band folder</button>
+      <span id="driveUser" class="hint"></span>
+    </div>
+    <p class="hint" id="folderHint"></p>
+    <div id="backupBox">
+      <h2>Backup</h2>
+      <p class="hint">One file with everything on this device: songs, PDFs, your annotations, set lists and preferences.</p>
+      <div class="row">
+        <button type="button" id="btnBackup">Download backup</button>
+        <button type="button" id="btnRestoreMerge" title="Adds anything missing and keeps whichever copy is newer">Restore (merge)</button>
+        <button type="button" id="btnRestoreAll" title="Wipes this device first, then loads the backup">Restore (replace all)</button>
+        <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+      </div>
+    </div>
+    <div class="row end">
+      <button type="button" id="btnDisconnect">Disconnect</button>
+      <button value="cancel">Close</button>
+      <button type="submit" value="save" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgMore">
+  <h2>This song</h2>
+  <div class="menu">
+    <button id="mInfo">Song info, tempo, audio…</button>
+    <button id="mAddSet">Add to set…</button>
+    <button id="mMove">Move to folder…</button>
+    <button id="mShare">Upload to band folder</button>
+    <button id="mCopy">Make personal copy</button>
+    <button id="mExportCho">Download chart (.cho)</button>
+    <button id="mExportBundle">Download my copy with annotations</button>
+    <button id="mPrint">Print / save as PDF</button>
+    <button id="mDelete" class="danger">Remove from this device</button>
+  </div>
+  <div class="row end"><button id="mClose">Close</button></div>
+</dialog>
+
+<dialog id="dlgSet">
+  <h2 id="sTitle">Set</h2>
+  <div class="menu">
+    <button id="sAdd">Add songs…</button>
+    <button id="sGap">Gap between songs…</button>
+    <button id="sRename">Rename</button>
+    <button id="sShare">Upload to band folder</button>
+    <button id="sDup">Duplicate</button>
+    <button id="sDelete" class="danger">Delete set</button>
+  </div>
+  <div class="row end"><button id="sClose">Close</button></div>
+</dialog>
+
+<dialog id="dlgPick">
+  <h2>Add songs</h2>
+  <input id="pickSearch" type="search" placeholder="Search songs" autocomplete="off">
+  <div id="pickList" class="picklist"></div>
+  <div class="row end"><button id="pickCancel">Cancel</button><button id="pickOk" class="primary">Add</button></div>
+</dialog>
+
+<dialog id="dlgAddSet">
+  <h2>Add to set</h2>
+  <div class="menu" id="addSetList"></div>
+  <div class="row end"><button id="addSetClose">Cancel</button></div>
+</dialog>
+
+<dialog id="dlgFolder">
+  <h2 id="fTitle">Folder</h2>
+  <div class="menu">
+    <button id="fRename">Rename</button>
+    <button id="fDelete" class="danger">Delete folder (songs move to Unfiled)</button>
+  </div>
+  <div class="row end"><button id="fClose">Close</button></div>
+</dialog>
+
+<dialog id="dlgMove">
+  <h2>Move to folder</h2>
+  <div class="menu" id="moveList"></div>
+  <div class="row end"><button id="moveClose">Cancel</button></div>
+</dialog>
+
+<dialog id="dlgOffline">
+  <form method="dialog">
+    <h2 id="offTitle">Offline check</h2>
+    <ul id="offList" class="checklist"></ul>
+    <p class="hint">Before a gig: open the app on wifi, tap Sync, open tonight's set once. After that nothing here needs a signal.</p>
+    <div class="row end"><button type="button" id="offProtect" hidden>Protect storage</button><button type="button" id="offRefresh">Re-check</button><button value="close" class="primary">Close</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgInfo">
+  <form method="dialog" id="formInfo">
+    <h2>Song info</h2>
+    <div class="grid2">
+      <label>Title<input id="iTitle" autocomplete="off"></label>
+      <label>Artist<input id="iArtist" autocomplete="off"></label>
+      <label>Key<input id="iKey" placeholder="G, Am, F#m" autocomplete="off"></label>
+      <label>Capo<input id="iCapo" placeholder="0" autocomplete="off"></label>
+      <label>Tempo (bpm)<input id="iTempo" inputmode="numeric" autocomplete="off"></label>
+      <label>Time signature<input id="iTime" placeholder="4/4" autocomplete="off"></label>
+      <label>Length (m:ss)<input id="iDur" placeholder="3:45" autocomplete="off"></label>
+    </div>
+    <label>Audio link (Spotify, YouTube, a direct .mp3 link…)<input id="iAudio" placeholder="https://" autocomplete="off"></label>
+    <div class="row">
+      <button type="button" id="iAttach">Attach audio file…</button>
+      <button type="button" id="iDetach" hidden>Remove attached file</button>
+      <span class="hint" id="iAttachNote"></span>
+      <input type="file" id="audioFile" accept="audio/*" hidden>
+    </div>
+    <p class="hint">Info is saved into the chart (ChordPro directives) so the band sees it too. An attached audio file stays on this device only. Your metronome tempo is personal and separate.</p>
+    <div class="row end"><button value="cancel">Cancel</button><button type="submit" value="save" class="primary">Save</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgAsk">
+  <p id="askMsg"></p>
+  <textarea id="askInput" rows="3" hidden></textarea>
+  <div class="row end"><button id="askCancel">Cancel</button><button id="askOk" class="primary">OK</button></div>
+</dialog>
+
+<div id="toast" role="status"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
