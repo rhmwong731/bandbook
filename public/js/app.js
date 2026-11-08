@@ -1159,7 +1159,7 @@ function setBpm(n, personal = true) {
   if (typeof updateTempoHint === 'function' && state.cur) updateTempoHint();
 }
 function syncMetroPanel() {
-  if (metro.running) return;
+  if (metro.running || metro.paused) return;
   setBpm(effTempo(), false);
   metro.beats = beatsPerBar(meta().time);
   $('mBeats').value = String(metro.beats);
@@ -1200,14 +1200,30 @@ async function saveTempoToSong() {
   updateSyncState();
   toast(`Saved ${bpm} bpm to “${song.title}”`);
 }
+function metroUi(state_) { // 'idle' | 'running' | 'paused'
+  const go = $('mGo');
+  go.textContent = state_ === 'running' ? 'Pause' : state_ === 'paused' ? 'Resume' : 'Start';
+  go.classList.toggle('running', state_ === 'running');
+  $('mStop').hidden = state_ === 'idle';
+  const on = state_ !== 'idle';
+  $('btnMetro').classList.toggle('on', on || !$('metroPanel').hidden);
+  $('sgMetro').classList.toggle('on', on || !$('metroPanel').hidden);
+  if (state_ !== 'running') document.querySelectorAll('#beatDots i').forEach((d) => d.classList.remove('on', 'count'));
+}
 function metroStop() {
-  if (!metro.running) return;
+  if (!metro.running && !metro.paused) return;
   metro.stop();
-  $('mGo').textContent = 'Start';
-  $('mGo').classList.remove('running');
+  metroUi('idle');
   $('btnMetro').classList.remove('on');
   $('sgMetro').classList.remove('on');
-  document.querySelectorAll('#beatDots i').forEach((d) => d.classList.remove('on', 'count'));
+}
+function metroPause() {
+  metro.pause();
+  metroUi('paused');
+}
+function metroResume() {
+  if (!metro.resume()) return toast('This browser has no audio support for the metronome');
+  metroUi('running');
 }
 function metroStart() {
   metro.countBars = Number($('mCount').value);
@@ -1223,10 +1239,7 @@ function metroStart() {
     if ($('mOnly').checked) setTimeout(metroStop, (60 / metro.bpm) * 1000 * 0.9);
   };
   if (!metro.start()) return toast('This browser has no audio support for the metronome');
-  $('mGo').textContent = 'Stop';
-  $('mGo').classList.add('running');
-  $('btnMetro').classList.add('on');
-  $('sgMetro').classList.add('on');
+  metroUi('running');
 }
 function toggleMetroPanel() {
   const show = $('metroPanel').hidden;
@@ -1237,7 +1250,8 @@ function toggleMetroPanel() {
   layout();
 }
 $('btnMetro').onclick = $('sgMetro').onclick = toggleMetroPanel;
-$('mGo').onclick = () => (metro.running ? metroStop() : metroStart());
+$('mGo').onclick = () => (metro.running ? metroPause() : metro.paused ? metroResume() : metroStart());
+$('mStop').onclick = metroStop;
 $('mBpmDown').onclick = () => setBpm(metro.bpm - 1);
 $('mBpmUp').onclick = () => setBpm(metro.bpm + 1);
 $('mBpm').onchange = (e) => setBpm(e.target.value);

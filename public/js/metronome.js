@@ -24,6 +24,7 @@ export class Metronome {
     this.countBars = 0; // bars of count-in before onStart fires
     this.volume = 0.7;
     this.running = false;
+    this.paused = false;
     this.onBeat = null; // (beatIndex, isCountIn) => void
     this.onCountInDone = null;
     this._ctx = null;
@@ -47,9 +48,32 @@ export class Metronome {
   start() {
     const ctx = this._audio();
     if (!ctx || this.running) return false;
-    this.running = true;
+    this.paused = false;
     this._beat = 0;
     this._total = 0;
+    this._go(ctx);
+    return true;
+  }
+
+  // keep the bar position; the next click is the beat after the last one that sounded
+  pause() {
+    if (!this.running) return;
+    this._beat -= this._queue.length;
+    this._total -= this._queue.length;
+    this._halt();
+    this.paused = true;
+  }
+
+  resume() {
+    const ctx = this._audio();
+    if (!ctx || this.running || !this.paused) return false;
+    this.paused = false;
+    this._go(ctx);
+    return true;
+  }
+
+  _go(ctx) {
+    this.running = true;
     this._next = ctx.currentTime + 0.06;
     this._queue = [];
     this._timer = setInterval(() => this._schedule(), 25);
@@ -65,7 +89,13 @@ export class Metronome {
       this._raf = requestAnimationFrame(tick);
     };
     this._raf = requestAnimationFrame(tick);
-    return true;
+  }
+
+  _halt() {
+    this.running = false;
+    clearInterval(this._timer);
+    cancelAnimationFrame(this._raf);
+    this._queue = [];
   }
 
   _schedule() {
@@ -96,9 +126,9 @@ export class Metronome {
   }
 
   stop() {
-    this.running = false;
-    clearInterval(this._timer);
-    cancelAnimationFrame(this._raf);
-    this._queue = [];
+    this._halt();
+    this.paused = false;
+    this._beat = 0;
+    this._total = 0;
   }
 }
