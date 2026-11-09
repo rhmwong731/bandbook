@@ -268,9 +268,10 @@ export function convertChordsOverLyrics(text) {
 
 // ---------- rendering (browser only) ----------
 
-export function renderSheet(container, parsed, { transpose = 0, style = 'letters' } = {}) {
+// capoShift > 0: show the shapes to play with a capo that many frets up (chords sound as written)
+export function renderSheet(container, parsed, { transpose = 0, style = 'letters', capoShift = 0 } = {}) {
   container.textContent = '';
-  const flats = prefersFlats(parsed.meta.key, transpose);
+  const flats = prefersFlats(parsed.meta.key, transpose - capoShift);
   const useNum = style !== 'letters' && !!keyRoot(parsed.meta.key);
   container.dataset.numerals = useNum ? '1' : '';
   const head = el('div', 'song-head');
@@ -280,7 +281,10 @@ export function renderSheet(container, parsed, { transpose = 0, style = 'letters
   const facts = [];
   if (parsed.meta.key) facts.push('Key ' + transposeKey(parsed.meta.key, transpose));
   if (transpose) facts.push(`(${transpose > 0 ? '+' : ''}${transpose})`);
-  if (parsed.meta.capo) facts.push('Capo ' + parsed.meta.capo);
+  if (capoShift) {
+    const k = parsed.meta.key ? transposeKey(parsed.meta.key, transpose - capoShift) : '';
+    facts.push(`Capo ${capoShift}` + (k ? ` · play shapes in ${k}` : ' · showing capo shapes'));
+  } else if (parsed.meta.capo) facts.push('Capo ' + parsed.meta.capo);
   if (parsed.meta.tempo) facts.push(parsed.meta.tempo + ' bpm');
   if (parsed.meta.duration) facts.push(formatDuration(parseDuration(parsed.meta.duration)));
   if (parsed.meta.time) facts.push(parsed.meta.time);
@@ -306,7 +310,7 @@ export function renderSheet(container, parsed, { transpose = 0, style = 'letters
       if (!hasChords) row.classList.add('plain');
       for (const s of ln.segs) {
         const seg = el('span', 'seg');
-        if (hasChords) seg.append(el('span', 'ch', s.chord ? (useNum ? toNumeral(s.chord, parsed.meta.key, style) : transposeChord(s.chord, transpose, flats)) : '\u00a0'));
+        if (hasChords) seg.append(el('span', 'ch', s.chord ? (useNum ? toNumeral(s.chord, parsed.meta.key, style) : transposeChord(s.chord, transpose - capoShift, flats)) : '\u00a0'));
         seg.append(el('span', 'ly', s.text || (s.chord ? '\u00a0\u00a0' : '')));
         row.append(seg);
       }

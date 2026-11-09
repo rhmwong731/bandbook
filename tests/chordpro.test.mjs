@@ -110,3 +110,12 @@ import { parseDefines, setDefine, parseChordPro as pcp } from '../public/js/chor
   assert.equal(parseDefines(t).Gmaj7.length, 1);
   console.log('chord define tests passed');
 }
+
+{
+  const { transposeChord: tc, renderSheet: _r } = await import('../public/js/chordpro.js');
+  assert.equal(tc('A', -2, true), 'G');
+  assert.equal(tc('Bm7', -2, false), 'Am7');
+  assert.equal(tc('E', -2, false), 'D');
+  assert.equal(tc('C', -3, false), 'A');
+  console.log('capo shift tests passed');
+}

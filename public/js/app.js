@@ -187,6 +187,31 @@ async function openSong(id, setId = null) {
 
 const durLabel = (song) => { const d = db.durationOf(song); return d ? formatDuration(d) : ''; };
 
+// Capo: {capo: N} in the song means the chords are the sounding ones. With the capo view on (the default),
+// the chart and chord diagrams show the shapes to play N frets down. The toggle is remembered per device.
+const capoFrets = () => { const n = parseInt(state.parsed?.meta?.capo ?? state.cur?.info?.capo, 10); return n >= 1 && n <= 11 ? n : 0; };
+const capoOff = () => db.settings.get('capoOff', {});
+function capoShift() {
+  const n = capoFrets();
+  return n && state.cur && !capoOff()[state.cur.id] ? n : 0;
+}
+function updateCapoBtn() {
+  const n = capoFrets();
+  const b = $('btnCapo');
+  b.hidden = !n || db.isDoc(state.cur);
+  b.textContent = 'Capo ' + n;
+  b.classList.toggle('on', !!capoShift());
+  b.title = capoShift() ? 'Showing the shapes to play with the capo. Tap to show the sounding chords instead.' : 'Showing the sounding chords. Tap to show capo shapes.';
+}
+$('btnCapo').onclick = () => {
+  const o = { ...capoOff() };
+  if (o[state.cur.id]) delete o[state.cur.id]; else o[state.cur.id] = 1;
+  db.settings.set('capoOff', o);
+  const keep = $('viewport').scrollTop;
+  render();
+  $('viewport').scrollTop = keep;
+};
+
 async function render() {
   const song = state.cur;
   if (!song) return;
@@ -211,8 +236,9 @@ async function render() {
     closeDoc();
     $('sheet').classList.remove('doc');
     state.parsed = parseChordPro(song.text);
+    updateCapoBtn();
     const style = db.settings.get('chordStyle', 'letters');
-    renderSheet($('sheet'), state.parsed, { transpose: t, style });
+    renderSheet($('sheet'), state.parsed, { transpose: t, style, capoShift: capoShift() });
     if (style !== 'letters' && !$('sheet').dataset.numerals && !state.numWarned) {
       state.numWarned = true;
       toast('Add a key in Song info to see chords as numbers', 4000);
@@ -1139,7 +1165,7 @@ function drawChordStrip() {
   const box = $('chordCards');
   box.textContent = '';
   if (!state.parsed || !state.showChords) return;
-  const t = state.ink.transpose || 0;
+  const t = (state.ink.transpose || 0) - capoShift();
   const flats = prefersFlats(state.parsed.meta.key, t);
   const inst = db.settings.get('instrument', 'guitar');
   $('instrument').value = inst;
