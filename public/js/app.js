@@ -540,7 +540,7 @@ function renderSets() {
   head.append(
     iconBtn('‹ Sets', 'Back to all sets', () => { state.setId = null; renderList(); }),
     name,
-    iconBtn('⋯', 'Set options', () => { $('sTitle').textContent = set.name; $('sShare').hidden = !!set.driveId; $('dlgSet').showModal(); }),
+    iconBtn('⋯', 'Set options', () => { $('sTitle').textContent = set.name; $('sShare').hidden = !!set.driveId; $('sDelete').textContent = set.driveId ? 'Remove from this device' : 'Delete set'; $('sDeleteAll').hidden = !set.driveId; $('dlgSet').showModal(); }),
   );
   ul.append(head);
 
@@ -711,13 +711,10 @@ $('sDup').onclick = async () => {
   state.setId = c.id;
   renderList();
 };
-$('sDelete').onclick = async () => {
-  $('dlgSet').close();
+async function dropCurrentSet(everyone) {
   const x = currentSet();
   if (!x) return;
-  if (!(await askDialog({ message: `Delete the set "${x.name}"? The songs stay in your library.`, ok: 'Delete set' }))) return;
   if (x.driveId) {
-    const everyone = await askDialog({ message: 'This set is shared with the band. Delete it for everyone too?\nChoose Cancel to remove it from this device only.', ok: 'Delete for everyone' });
     try {
       if (everyone) await removeSetEverywhere(x); else keepOffDevice(x.id);
     } catch (e) { return toast(e.message, 5000); }
@@ -728,6 +725,24 @@ $('sDelete').onclick = async () => {
   await loadSets();
   renderList();
   updateSetNav();
+}
+// Remove from this device (or delete outright if it was never shared). The songs always stay in the library.
+$('sDelete').onclick = async () => {
+  $('dlgSet').close();
+  const x = currentSet();
+  if (!x) return;
+  const msg = x.driveId
+    ? `Remove the set "${x.name}" from this device only?\nThe band keeps it, and it will not come back on your later syncs. Your songs are not touched.`
+    : `Delete the set "${x.name}"? Your songs are not touched. This cannot be undone.`;
+  if (!(await askDialog({ message: msg, ok: x.driveId ? 'Remove from this device' : 'Delete set' }))) return;
+  await dropCurrentSet(false);
+};
+$('sDeleteAll').onclick = async () => {
+  $('dlgSet').close();
+  const x = currentSet();
+  if (!x) return;
+  if (!(await askDialog({ message: `Delete the set "${x.name}" for the whole band?\nEvery member loses it at their next sync. Songs are not touched. This cannot be undone.`, ok: 'Delete for everyone' }))) return;
+  await dropCurrentSet(true);
 };
 $('sShare').onclick = async () => {
   $('dlgSet').close();
