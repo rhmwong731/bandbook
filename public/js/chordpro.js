@@ -148,6 +148,40 @@ export function setDirective(text, name, value) {
   return lines.join('\n');
 }
 
+// Chord fingerings picked for this song, stored as standard ChordPro lines:
+//   {define: Gmaj7 base-fret 1 frets 3 x 4 4 3 2}      (6 numbers = guitar, 4 = ukulele)
+// so they travel with the song text: sync, backup and export all carry them.
+const DEFINE_RE = /^\s*\{\s*define\s*:\s*(\S+)\s+base-fret\s+1\s+frets\s+([^}]*?)\s*\}\s*$/i;
+export function parseDefines(text) {
+  const out = {}; // { chordName: [fretsArray, ...] }
+  for (const l of String(text || '').replace(/\r\n?/g, '\n').split('\n')) {
+    const m = l.match(DEFINE_RE);
+    if (!m) continue;
+    const frets = m[2].split(/\s+/).map((f) => (/^x$/i.test(f) ? -1 : /^\d{1,2}$/.test(f) ? Number(f) : NaN));
+    if (frets.length < 4 || frets.some((f) => Number.isNaN(f))) continue;
+    (out[m[1]] ||= []).push(frets);
+  }
+  return out;
+}
+// Set (or with null remove) the fingering of one chord for one instrument (told apart by the number of strings).
+export function setDefine(text, chord, frets, strings) {
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+  const same = (l) => {
+    const m = l.match(DEFINE_RE);
+    return m && m[1] === chord && m[2].split(/\s+/).length === strings;
+  };
+  const idx = lines.findIndex(same);
+  if (!frets) { if (idx >= 0) lines.splice(idx, 1); return lines.join('\n'); }
+  const line = `{define: ${chord} base-fret 1 frets ${frets.map((f) => (f < 0 ? 'x' : f)).join(' ')}}`;
+  if (idx >= 0) lines[idx] = line;
+  else {
+    let at = 0;
+    while (at < lines.length && /^\s*\{\s*(title|t|subtitle|st|artist|composer|key|capo|tempo|time|duration|length|audio|define)\b/i.test(lines[at])) at++;
+    lines.splice(at, 0, line);
+  }
+  return lines.join('\n');
+}
+
 // ---------- Nashville / Roman numerals ----------
 
 export function keyRoot(key) {

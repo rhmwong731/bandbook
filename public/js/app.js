@@ -1,5 +1,5 @@
 import * as db from './store.js';
-import { parseChordPro, renderSheet, convertChordsOverLyrics, transposeChord, prefersFlats, chordsOf, setDirective, parseDuration, formatDuration } from './chordpro.js';
+import { parseChordPro, renderSheet, convertChordsOverLyrics, transposeChord, prefersFlats, chordsOf, setDirective, parseDuration, formatDuration, parseDefines, setDefine } from './chordpro.js';
 import { voicings, renderSvg, TUNINGS, shapeText, parseShape, customVoicing } from './diagram.js';
 import { Metronome, tapTempo, clampBpm, beatsPerBar } from './metronome.js';
 import { renderDoc, closeDoc } from './docview.js';
@@ -1111,19 +1111,15 @@ function drawChordStrip() {
   const flats = prefersFlats(state.parsed.meta.key, t);
   const inst = db.settings.get('instrument', 'guitar');
   $('instrument').value = inst;
-  const prefs = db.settings.get('voicings', {});
+  const defs = parseDefines(state.cur?.text);
   for (const c of chordsOf(state.parsed)) {
     const name = transposeChord(c, t, flats);
     const vs = voicings(name, inst);
-    const key = inst + ':' + name;
-    // the pick is stored as the shape itself ("3x4432"), per device; an old numeric pick is read as a list position
-    const saved = prefs[key];
+    // the pick lives in the song itself ({define: ...} line), so it syncs, backs up and exports with the song
+    const nStr = TUNINGS[inst].strings.length;
+    const saved = (defs[name] || []).find((f) => f.length === nStr);
     let cur = null; // null = first suggestion
-    if (typeof saved === 'number') cur = vs[saved] || null;
-    else if (typeof saved === 'string') {
-      const f = parseShape(saved, inst);
-      if (f) cur = vs.find((v) => shapeText(v) === shapeText({ frets: f })) || customVoicing(f, inst);
-    }
+    if (saved) cur = vs.find((v) => shapeText(v) === shapeText({ frets: saved })) || customVoicing(saved, inst);
     const card = document.createElement('div');
     card.className = 'ccard';
     card.dataset.chord = name;
@@ -1150,9 +1146,13 @@ function drawChordStrip() {
       next.disabled = !vs.length || (!cur?.custom && at() >= vs.length - 1);
     };
     const store = () => {
-      const p = db.settings.get('voicings', {});
-      if (cur && at() !== 0) p[key] = shapeText(cur); else delete p[key];
-      db.settings.set('voicings', p);
+      const song = state.cur;
+      if (!song || db.isDoc(song)) return;
+      song.text = setDefine(song.text, name, cur && at() !== 0 ? cur.frets : null, nStr);
+      db.refreshMeta(song);
+      song.dirty = !!song.driveId;
+      song.updatedAt = Date.now();
+      db.put('songs', song).then(() => { updateSyncState(); });
     };
     const set = (d) => {
       const i = cur?.custom ? (d > 0 ? -1 : vs.length) : Math.max(0, at());

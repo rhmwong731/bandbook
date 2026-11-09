@@ -95,3 +95,18 @@ console.log('chordpro extra tests passed');
   assert.equal(p.lines.filter((l) => l.type === 'sectionEnd').length, 4);
   console.log('custom section tests passed');
 }
+
+import { parseDefines, setDefine, parseChordPro as pcp } from '../public/js/chordpro.js';
+{
+  let t = '{title: X}\n{key: G}\n[G]Hello';
+  t = setDefine(t, 'Gmaj7', [3, -1, 4, 4, 3, 2], 6);
+  assert.deepEqual(parseDefines(t), { Gmaj7: [[3, -1, 4, 4, 3, 2]] });
+  assert.ok(t.split('\n')[2].startsWith('{define: Gmaj7 base-fret 1 frets 3 x 4 4 3 2}'));
+  t = setDefine(t, 'Gmaj7', [2, 2, 2, 2], 4); // ukulele pick is kept separately
+  t = setDefine(t, 'Gmaj7', [3, -1, 4, 4, 3, 3], 6); // replaced, not duplicated
+  assert.equal(parseDefines(t).Gmaj7.length, 2);
+  assert.equal(pcp(t).lines.filter((l) => l.type === 'lyric').length, 1); // define lines are not shown
+  t = setDefine(t, 'Gmaj7', null, 6);
+  assert.equal(parseDefines(t).Gmaj7.length, 1);
+  console.log('chord define tests passed');
+}
