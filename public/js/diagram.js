@@ -260,3 +260,22 @@ export function renderSvg(v, { name = '', instrument = 'guitar', small = false }
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export const shapeName = (v) => (v ? v.frets.map((f) => (f < 0 ? 'x' : f)).join(' ') : '');
+
+// Text <-> shape, for typing your own fingering: "3x4432", or "x.10.12.12.12.10" when a fret is above 9.
+export const shapeText = (v) => {
+  const t = v.frets.map((f) => (f < 0 ? 'x' : f));
+  return t.some((f) => f > 9) ? t.join('.') : t.join('');
+};
+export function parseShape(text, instrument = 'guitar') {
+  const n = (TUNINGS[instrument] || TUNINGS.guitar).strings.length;
+  const s = String(text || '').trim().toLowerCase();
+  const parts = /[\s.,\-]/.test(s) ? s.split(/[\s.,\-]+/).filter(Boolean) : s.split('');
+  if (parts.length !== n) return null;
+  const frets = parts.map((p) => (p === 'x' ? -1 : /^\d{1,2}$/.test(p) ? Number(p) : NaN));
+  if (frets.some((f) => Number.isNaN(f) || f > 24)) return null;
+  return frets;
+}
+export function customVoicing(frets, instrument = 'guitar') {
+  const a = analyse(frets, TUNINGS[instrument] || TUNINGS.guitar);
+  return { frets, base: baseFretOf(frets), barre: a.barre, fingers: a.fingers, cost: 0, minF: a.minF, custom: true };
+}

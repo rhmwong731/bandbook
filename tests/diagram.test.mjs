@@ -86,3 +86,13 @@ console.log('diagram tests passed');
 
 assert.ok(voicings('Gmaj7').some((v) => shape(v) === '3x4432'), 'Gmaj7 3x4432');
 console.log('skip-A shape tests passed');
+
+import { parseShape, shapeText, customVoicing } from '../public/js/diagram.js';
+assert.deepEqual(parseShape('3x4432'), [3, -1, 4, 4, 3, 2]);
+assert.deepEqual(parseShape('x.10.12.12.12.10'), [-1, 10, 12, 12, 12, 10]);
+assert.deepEqual(parseShape('0 2 2 1 0 0'), [0, 2, 2, 1, 0, 0]);
+assert.equal(parseShape('3x44'), null);
+assert.equal(parseShape('3x44zz'), null);
+assert.equal(parseShape('2100', 'ukulele').length, 4);
+assert.equal(shapeText(customVoicing([-1, 10, 12, 12, 12, 10])), 'x.10.12.12.12.10');
+console.log('shape text tests passed');

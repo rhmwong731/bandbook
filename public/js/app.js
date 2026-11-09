@@ -1,6 +1,6 @@
 import * as db from './store.js';
 import { parseChordPro, renderSheet, convertChordsOverLyrics, transposeChord, prefersFlats, chordsOf, setDirective, parseDuration, formatDuration } from './chordpro.js';
-import { voicings, renderSvg, TUNINGS } from './diagram.js';
+import { voicings, renderSvg, TUNINGS, shapeText, parseShape, customVoicing } from './diagram.js';
 import { Metronome, tapTempo, clampBpm, beatsPerBar } from './metronome.js';
 import { renderDoc, closeDoc } from './docview.js';
 import { assess } from './offline.js';
@@ -1116,7 +1116,14 @@ function drawChordStrip() {
     const name = transposeChord(c, t, flats);
     const vs = voicings(name, inst);
     const key = inst + ':' + name;
-    let idx = Math.min(prefs[key] || 0, Math.max(0, vs.length - 1));
+    // the pick is stored as the shape itself ("3x4432"), per device; an old numeric pick is read as a list position
+    const saved = prefs[key];
+    let cur = null; // null = first suggestion
+    if (typeof saved === 'number') cur = vs[saved] || null;
+    else if (typeof saved === 'string') {
+      const f = parseShape(saved, inst);
+      if (f) cur = vs.find((v) => shapeText(v) === shapeText({ frets: f })) || customVoicing(f, inst);
+    }
     const card = document.createElement('div');
     card.className = 'ccard';
     card.dataset.chord = name;
@@ -1125,27 +1132,49 @@ function drawChordStrip() {
     pick.className = 'cv';
     const prev = document.createElement('button');
     const next = document.createElement('button');
+    const edit = document.createElement('button');
     const lab = document.createElement('span');
     prev.textContent = '−';
     next.textContent = '+';
+    edit.textContent = '✎';
     prev.title = 'Previous voicing (lower on the neck)';
     next.title = 'Next voicing (higher up the neck)';
+    edit.title = 'Type your own fingering, e.g. 3x4432 (empty = back to suggestions)';
+    const at = () => (cur && !cur.custom ? vs.findIndex((v) => shapeText(v) === shapeText(cur)) : cur ? -1 : 0);
+    const shown = () => cur || vs[0] || null;
     const draw = () => {
-      svg.innerHTML = renderSvg(vs[idx] || null, { name, instrument: inst });
-      lab.textContent = vs.length ? `${idx + 1}/${vs.length}` : '';
-      prev.disabled = idx <= 0;
-      next.disabled = idx >= vs.length - 1;
+      const v = shown();
+      svg.innerHTML = renderSvg(v, { name, instrument: inst });
+      lab.textContent = cur && cur.custom ? 'custom' : vs.length ? `${Math.max(0, at()) + 1}/${vs.length}` : '';
+      prev.disabled = !vs.length || (!cur?.custom && at() <= 0);
+      next.disabled = !vs.length || (!cur?.custom && at() >= vs.length - 1);
+    };
+    const store = () => {
+      const p = db.settings.get('voicings', {});
+      if (cur && at() !== 0) p[key] = shapeText(cur); else delete p[key];
+      db.settings.set('voicings', p);
     };
     const set = (d) => {
-      idx = Math.max(0, Math.min(vs.length - 1, idx + d));
-      const p = db.settings.get('voicings', {});
-      if (idx) p[key] = idx; else delete p[key];
-      db.settings.set('voicings', p);
+      const i = cur?.custom ? (d > 0 ? -1 : vs.length) : Math.max(0, at());
+      cur = vs[Math.max(0, Math.min(vs.length - 1, i + d))] || null;
+      store();
+      draw();
+    };
+    edit.onclick = () => {
+      const t = window.prompt(`Fingering for ${name} (${inst === 'ukulele' ? '4' : '6'} strings, lowest first, x = muted).\nExample: 3x4432, or x.10.12.12.12.10 above the 9th fret.\nLeave empty to go back to the suggestions.`, shapeText(shown() || { frets: [] }));
+      if (t === null) return;
+      if (!t.trim()) cur = null;
+      else {
+        const f = parseShape(t, inst);
+        if (!f) { toast('Could not read that fingering'); return; }
+        cur = vs.find((v) => shapeText(v) === shapeText({ frets: f })) || customVoicing(f, inst);
+      }
+      store();
       draw();
     };
     prev.onclick = () => set(-1);
     next.onclick = () => set(1);
-    pick.append(prev, lab, next);
+    pick.append(prev, lab, next, edit);
     card.append(svg, pick);
     box.append(card);
     draw();
