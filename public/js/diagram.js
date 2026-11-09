@@ -71,8 +71,9 @@ function analyse(frets, tuning) {
 
 // Well-known moveable shapes: offsets from the fret of the root note on that string (x = muted).
 // Shifted up the neck they become the familiar barre chords. Standard guitar tuning only.
-const X = -1;
+const X = -99; // muted (offsets below the root fret are allowed, e.g. -1)
 const SHAPES = [
+  { rootString: 0, name: 'E shape (skip A)', q: { maj7: [0, X, 1, 1, 0, -1], 7: [0, X, 0, 1, 0, -2], m7: [0, X, 0, 0, -1, -2] } },
   { rootString: 0, name: 'E shape', q: { '': [0, 2, 2, 1, 0, 0], m: [0, 2, 2, 0, 0, 0], 7: [0, 2, 0, 1, 0, 0], m7: [0, 2, 0, 0, 0, 0], maj7: [0, 2, 1, 1, 0, 0],
     6: [0, 2, 2, 1, 2, 0], m6: [0, 2, 2, 0, 2, 0], sus4: [0, 2, 2, 2, 0, 0], sus2: [0, 2, 4, 4, 0, 0], 9: [0, 2, 0, 1, 0, 2], add9: [0, 2, 2, 1, 0, 2],
     m9: [0, 2, 0, 0, 0, 2], '7sus4': [0, 2, 0, 2, 0, 0], 5: [0, 2, 2, X, X, X] } },
@@ -116,8 +117,10 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
         const a = analyse(frets, tuning);
         if (a.sounding.length < (ch.quality === '5' ? 3 : tuning.minSound)) return;
         // contiguous sounding strings
-        if (a.sounding[a.sounding.length - 1] - a.sounding[0] + 1 !== a.sounding.length) return;
-        if (a.fingers > 4) return;
+        // (one exception: bass string, skipped A string, then the rest - 3x4432, 5x5655)
+        const skipA = n === 6 && frets[0] >= 0 && frets[1] < 0 && a.sounding.length >= 5 && a.sounding.slice(1).every((v, i, arr) => !i || v === arr[i - 1] + 1);
+        if (!skipA && a.sounding[a.sounding.length - 1] - a.sounding[0] + 1 !== a.sounding.length) return;
+        if (a.fingers > 4 && !pref.has(k)) return; // (a few classic shapes use a partial barre / thumb)
         // span (only fretted notes count)
         if (a.fretted.length) {
           const fs = a.fretted.map((i) => frets[i]);
@@ -158,7 +161,7 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
           if (!t) continue;
           const rf = (((ch.bass !== undefined && !ch.slash ? ch.root : ch.root) - tuning.strings[sh.rootString]) % 12 + 12) % 12;
           for (const r of rf === 0 ? [12] : [rf]) {
-            const fr = t.map((o) => (o < 0 ? -1 : o + r));
+            const fr = t.map((o) => (o < -50 ? -1 : o + r));
             if (Math.max(...fr) > 15 || ch.slash) continue;
             pref.add(fr.join(','));
             check(fr);

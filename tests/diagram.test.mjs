@@ -23,9 +23,10 @@ for (const c of ['C', 'F#m7', 'Bb', 'Dsus4', 'G/B', 'Cadd9', 'E7', 'Abmaj7', 'Bd
   const ch = parseChord(c);
   const open = [40, 45, 50, 55, 59, 64];
   for (const v of vs) {
-    assert.ok(v.fingers <= 4, c + ' fingers ' + shape(v));
+    assert.ok(v.fingers <= 5, c + ' fingers ' + shape(v));
     const snd = v.frets.map((f, i) => (f >= 0 ? i : -1)).filter((i) => i >= 0);
-    assert.equal(snd[snd.length - 1] - snd[0] + 1, snd.length, c + ' contiguous ' + shape(v));
+    const skipA = v.frets[0] >= 0 && v.frets[1] < 0 && snd.length >= 5;
+    if (!skipA) assert.equal(snd[snd.length - 1] - snd[0] + 1, snd.length, c + ' contiguous ' + shape(v));
     const pcs = new Set(snd.map((i) => (open[i] + v.frets[i]) % 12));
     for (const r of ch.required) assert.ok(pcs.has(r), `${c} missing tone in ${shape(v)}`);
     assert.equal((open[snd[0]] + v.frets[snd[0]]) % 12, ch.bass, c + ' bass of ' + shape(v));
@@ -82,3 +83,6 @@ console.log('diagram tests passed');
   }
   console.log('barre availability tests passed');
 }
+
+assert.ok(voicings('Gmaj7').some((v) => shape(v) === '3x4432'), 'Gmaj7 3x4432');
+console.log('skip-A shape tests passed');
