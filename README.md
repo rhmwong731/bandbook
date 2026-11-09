@@ -91,3 +91,10 @@ tests/, tests-integration/  unit tests, server test
 Wrap `public/` with Capacitor. The app talks to the band server over plain HTTPS, so nothing about sync changes. Pen input uses Pointer Events and works with Apple Pencil and Android styluses.
 
 > Deploys automatically: every push to `main` is built and deployed by Cloudflare Workers Builds.
+
+## Keeping the band private
+
+- The address of your server is not secret, so the invite code is the front door. Make it long and random (not the band name), and change it with `npx wrangler secret put INVITE_CODE` once everyone has joined. Members who already joined stay signed in; only new people need the new code.
+- Wrong guesses are limited to 8 per 10 minutes per address, for both the invite code and the admin code.
+- Songs, set lists, files and annotations are only served to a signed-in member. Removing a member under Settings > Your band > Members locks their device out.
+- Turn on two-step sign-in for your GitHub and Cloudflare accounts.

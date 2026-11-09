@@ -14,6 +14,7 @@ const id = () => 's' + Math.random().toString(36).slice(2, 12);
 
 // --- joining
 assert.equal((await call('GET', '/api/health')).status, 200);
+assert.equal(JSON.stringify((await call('GET', '/api/health')).data), '{"ok":true}', 'health reveals nothing about the band');
 assert.equal((await call('GET', '/api/sync')).status, 401, 'needs a token');
 assert.equal((await call('POST', '/api/join', { body: { name: 'X', code: 'nope' } })).status, 403);
 assert.equal((await call('POST', '/api/join', { body: { name: '', code: 'testcode' } })).status, 400);
@@ -109,5 +110,11 @@ assert.equal((await call('GET', '/api/sync', { token: A.token })).status, 200);
 let limited = false;
 for (let i = 0; i < 10; i++) if ((await call('POST', '/api/join', { body: { name: 'X', code: 'bad' + i } })).status === 429) limited = true;
 assert.ok(limited, 'repeated wrong codes get rate limited');
+
+// --- admin code guessing is limited too (and a locked-out address stays locked for a while)
+let adminLimited = false;
+for (let i = 0; i < 10; i++) if ((await call('GET', '/api/members', { headers: { 'X-Admin-Code': 'nope' + i } })).status === 429) adminLimited = true;
+assert.ok(adminLimited, 'repeated wrong admin codes get rate limited');
+assert.equal((await call('GET', '/api/members', { headers: { 'X-Admin-Code': 'adminpass' } })).status, 429, 'locked out even with the right code');
 
 console.log('server integration tests passed');

@@ -56,17 +56,26 @@ const str = (v, max, d = '') => (typeof v === 'string' ? v.slice(0, max) : d);
 
 // ---------- handlers ----------
 
-async function join(req, env) {
+// failed-guess limiter: 8 wrong codes per 10 minutes per address, separately for joining and admin
+async function guessGate(req, env, kind) {
   const ip = req.headers.get('CF-Connecting-IP') || 'local';
-  const rlKey = 'rl:' + ip;
-  const tries = Number((await env.FILES.get(rlKey)) || 0);
-  if (tries >= 8) return fail(429, 'Too many tries. Wait ten minutes and try again.');
+  const key = `rl:${kind}:${ip}`;
+  const tries = Number((await env.FILES.get(key)) || 0);
+  return {
+    blocked: tries >= 8,
+    miss: () => env.FILES.put(key, String(tries + 1), { expirationTtl: 600 }),
+  };
+}
+
+async function join(req, env) {
+  const gate = await guessGate(req, env, 'join');
+  if (gate.blocked) return fail(429, 'Too many tries. Wait ten minutes and try again.');
   const body = await readJson(req, 2000);
   const name = str(body.name, 40).trim();
   if (!name) return fail(400, 'Enter your name.');
   if (!env.INVITE_CODE) return fail(500, 'The server has no invite code set up.');
   if (!(await same(str(body.code, 100).trim(), env.INVITE_CODE))) {
-    await env.FILES.put(rlKey, String(tries + 1), { expirationTtl: 600 });
+    await gate.miss();
     return fail(403, 'That invite code is not right.');
   }
   const token = newToken();
@@ -186,7 +195,9 @@ async function putFolders(req, env) {
 }
 
 async function admin(req, env, url) {
-  if (!env.ADMIN_CODE || !(await same(req.headers.get('X-Admin-Code') || '', env.ADMIN_CODE))) return fail(403, 'Admin code needed.');
+  const gate = await guessGate(req, env, 'admin');
+  if (gate.blocked) return fail(429, 'Too many tries. Wait ten minutes and try again.');
+  if (!env.ADMIN_CODE || !(await same(req.headers.get('X-Admin-Code') || '', env.ADMIN_CODE))) { await gate.miss(); return fail(403, 'Admin code needed.'); }
   if (req.method === 'GET') {
     const r = await env.DB.prepare('SELECT id, name, created FROM members WHERE revoked = 0 ORDER BY created').all();
     return json({ members: r.results });
@@ -209,7 +220,7 @@ export default {
     try {
       const p = url.pathname;
       const M = req.method;
-      if (p === '/api/health') return json({ ok: true, band: env.BAND_NAME || 'Band' });
+      if (p === '/api/health') return json({ ok: true });
       if (p === '/api/join' && M === 'POST') return await join(req, env);
       if (p === '/api/members' || p.startsWith('/api/members/')) return await admin(req, env, url);
 
