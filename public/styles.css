@@ -237,7 +237,7 @@ dialog label input:not([type=checkbox]):not([type=range]), dialog label select {
 @media (prefers-reduced-motion: reduce) { #beatFlash.go { animation-duration: .01s; } }
 
 /* ---- night (red) mode and touch lock ---- */
-#nightTint { position: fixed; inset: 0; z-index: 80; pointer-events: none; background: #c01818; mix-blend-mode: multiply; display: none; }
+#nightTint { position: fixed; inset: 0; z-index: 80; pointer-events: none; background: #ff3a2e; mix-blend-mode: multiply; display: none; }
 body.night #nightTint { display: block; }
 body.night #beatFlash { background: #a00 !important; }
 #touchLock { position: fixed; inset: 0; z-index: 100; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; background: transparent; }
@@ -268,3 +268,12 @@ body.night #beatFlash { background: #a00 !important; }
   #stageBar button { font-size: 14px; padding: 7px 10px; }
   #stageBar { gap: 6px; padding: 6px 8px; }
 }
+
+/* night page: black with bright red type (no red tint math on blue chords, which made them vanish) */
+body.night #page { filter: none !important; background: #000; box-shadow: none; }
+body.night #sheet, body.night #sheet * { color: #ffd9d3 !important; border-color: #5a1a14 !important; }
+body.night #sheet .ch { color: #ffffff !important; font-weight: 800; }
+body.night #sheet .sec-label { color: #ff9d90 !important; }
+body.night #ink { filter: invert(1) hue-rotate(180deg) grayscale(1) brightness(1.5); }
+body.night .docpage canvas, body.night .docimg { filter: invert(1) grayscale(1) brightness(.95); }
+body.night #viewport { background: #000; }

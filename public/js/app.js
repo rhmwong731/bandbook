@@ -911,6 +911,8 @@ $('btnMore').onclick = () => {
   if (!state.cur) return toast('Open a song first');
   const doc = db.isDoc(state.cur);
   $('mShare').hidden = !!state.cur.driveId;
+  $('mDeleteAll').hidden = !state.cur.driveId;
+  $('mDelete').textContent = state.cur.driveId ? 'Remove from this device' : 'Delete song';
   $('mExportCho').hidden = $('mExportBundle').hidden = $('mCopy').hidden = doc;
   $('dlgMore').showModal();
 };
@@ -943,23 +945,35 @@ $('mShare').onclick = async () => {
   } catch (e) { toast(e.message, 5000); }
   $('dlgMore').close();
 };
-$('mDelete').onclick = async () => {
-  if (!(await askDialog({ ok: 'Remove', message: `Remove "${state.cur.title}" from this device?` }))) return;
-  if (state.cur.driveId) {
-    const everyone = await askDialog({ message: 'This song is shared with the band. Delete it for everyone too?\nChoose Cancel to remove it from this device only (it will not come back on later syncs).', ok: 'Delete for everyone' });
-    try {
-      if (everyone) await removeSongEverywhere(state.cur); else keepOffDevice(state.cur.id);
-    } catch (e) { return toast(e.message, 5000); }
-  }
+async function dropCurrentSong(everyone) {
+  const song = state.cur;
+  if (!song) return;
+  try {
+    if (song.driveId) { if (everyone) await removeSongEverywhere(song); else keepOffDevice(song.id); }
+  } catch (e) { return toast(e.message, 5000); }
   metroStop();
-  await db.del('songs', state.cur.id);
-  await db.del('ink', state.cur.id);
-  await db.del('files', state.cur.id);
-  await db.del('files', 'audio:' + state.cur.id);
+  await db.del('songs', song.id);
+  await db.del('ink', song.id);
+  await db.del('files', song.id);
+  await db.del('files', 'audio:' + song.id);
   state.cur = null; state.ink = null;
   $('dlgMore').close();
   await loadSongs();
   if (state.songs[0]) await openSong(state.songs[0].id); else showEmpty();
+}
+// Remove from this device: the band keeps its copy and it will not come back on later syncs
+$('mDelete').onclick = async () => {
+  const shared = !!state.cur.driveId;
+  const msg = shared
+    ? `Remove "${state.cur.title}" from this device only?\nThe band keeps it, and it will not come back on your later syncs.`
+    : `Delete "${state.cur.title}"? It is not shared with the band, so this cannot be undone.`;
+  if (!(await askDialog({ ok: shared ? 'Remove from this device' : 'Delete', message: msg }))) return;
+  await dropCurrentSong(false);
+};
+// Delete for everyone: shared songs only
+$('mDeleteAll').onclick = async () => {
+  if (!(await askDialog({ ok: 'Delete for everyone', message: `Delete "${state.cur.title}" for the whole band?\nEvery member loses it at their next sync. This cannot be undone.` }))) return;
+  await dropCurrentSong(true);
 };
 
 function showEmpty() {
@@ -1394,17 +1408,9 @@ async function keepAwake(on) {
 }
 document.addEventListener('visibilitychange', () => { if (state.stage && document.visibilityState === 'visible' && !wakeLock) keepAwake(true); });
 
-let nightPrevDark = null;
 function applyNight(on) {
   document.body.classList.toggle('night', on);
   $('sgNight').classList.toggle('on', on);
-  if (on) {
-    if (nightPrevDark === null) nightPrevDark = $('page').classList.contains('dark');
-    applyDark(true, false); // black page under the red tint
-  } else if (nightPrevDark !== null) {
-    applyDark(nightPrevDark, false);
-    nightPrevDark = null;
-  }
 }
 function setLock(on) {
   state.locked = on;
