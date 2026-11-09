@@ -18,6 +18,8 @@ const DIRECTIVE_ALIASES = {
   sot: 'start_tab', start_of_tab: 'start_tab', eot: 'end', end_of_tab: 'end',
 };
 
+const SECTION_NAMES = { prechorus: 'Pre-Chorus' };
+
 export function parseChordPro(text) {
   const meta = {};
   const lines = [];
@@ -25,9 +27,14 @@ export function parseChordPro(text) {
     const line = raw.replace(/\s+$/, '');
     const d = line.match(/^\s*\{\s*([A-Za-z_]+)\s*(?::\s*(.*?))?\s*\}\s*$/);
     if (d) {
-      const name = DIRECTIVE_ALIASES[d[1].toLowerCase()];
+      const word = d[1].toLowerCase();
+      let name = DIRECTIVE_ALIASES[word];
       const value = d[2] || '';
-      if (!name) continue;
+      if (!name) { // any other section: {start_of_intro} ... {end_of_intro}, prechorus, outro, solo, tag, ...
+        const g = word.match(/^(start|end)_of_([a-z][a-z0-9_-]*)$/);
+        if (!g) continue;
+        name = g[1] === 'end' ? 'end' : 'start_' + g[2].replace(/[^a-z0-9-]/g, '-');
+      }
       if (['title', 'subtitle', 'artist', 'key', 'capo', 'tempo', 'time', 'duration', 'audio'].includes(name)) meta[name] = value;
       else if (name === 'comment') lines.push({ type: 'comment', text: value });
       else if (name === 'end') lines.push({ type: 'sectionEnd' });
@@ -250,7 +257,7 @@ export function renderSheet(container, parsed, { transpose = 0, style = 'letters
   for (const ln of parsed.lines) {
     if (ln.type === 'sectionStart') {
       cur = el('div', 'section ' + ln.kind);
-      const label = ln.label || ln.kind[0].toUpperCase() + ln.kind.slice(1);
+      const label = ln.label || SECTION_NAMES[ln.kind] || ln.kind[0].toUpperCase() + ln.kind.slice(1);
       cur.append(el('div', 'sec-label', label));
       container.append(cur);
     } else if (ln.type === 'sectionEnd') {

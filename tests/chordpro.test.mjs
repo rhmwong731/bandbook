@@ -85,3 +85,13 @@ assert.deepEqual(keyRoot('F#m'), { root: 6, minor: true });
 assert.equal(keyRoot('nope'), null);
 assert.deepEqual(chordsOf(parseChordPro('[G]a [C]b\n[G]c [D7]d')), ['G', 'C', 'D7']);
 console.log('chordpro extra tests passed');
+
+// any section name works: intro, pre-chorus, outro...
+{
+  const { parseChordPro } = await import('../public/js/chordpro.js');
+  const p = parseChordPro('{start_of_intro: Intro}\n[G]La\n{end_of_intro}\n{start_of_prechorus: Pre-Chorus}\n[C]Ooh\n{end_of_prechorus}\n{start_of_outro}\n[D]End\n{end_of_outro}\n{start_of_chorus}\n[G]Sing\n{end_of_chorus}');
+  const starts = p.lines.filter((l) => l.type === 'sectionStart').map((l) => l.kind + ':' + l.label);
+  assert.deepEqual(starts, ['intro:Intro', 'prechorus:Pre-Chorus', 'outro:', 'chorus:']);
+  assert.equal(p.lines.filter((l) => l.type === 'sectionEnd').length, 4);
+  console.log('custom section tests passed');
+}
