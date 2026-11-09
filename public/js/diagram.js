@@ -29,9 +29,10 @@ export function parseChord(name) {
   let q = m[2].replace(/\(([^)]*)\)/g, '$1');
   for (const [re, to] of ALIASES) if (re.test(q)) { q = q.replace(re, to); break; }
   let tones = null;
-  for (const [key, set] of QUALITIES) if (q === key) { tones = set; break; }
+  let quality = null;
+  for (const [key, set] of QUALITIES) if (q === key) { tones = set; quality = key; break; }
   if (!tones) { // unknown extension: fall back to the longest known prefix
-    for (const [key, set] of QUALITIES) if (key && q.startsWith(key)) { tones = set; break; }
+    for (const [key, set] of QUALITIES) if (key && q.startsWith(key)) { tones = set; quality = key; break; }
     if (!tones) tones = /^m(?!aj)/.test(q) ? [0, 3, 7] : [0, 4, 7];
   }
   const root = NOTE_INDEX[m[1]];
@@ -42,7 +43,7 @@ export function parseChord(name) {
   const optional = tones.length > 3 && tones.includes(7) ? [fifth] : [];
   const required = pcs.filter((p) => !optional.includes(p));
   if (!required.includes(bass)) required.push(bass);
-  return { name, root, bass, slash: !!m[3], pcs: new Set([...pcs, bass]), required, optional };
+  return { name, quality, root, bass, slash: !!m[3], pcs: new Set([...pcs, bass]), required, optional };
 }
 
 function analyse(frets, tuning) {
@@ -67,6 +68,21 @@ function analyse(frets, tuning) {
   return { n, sounding, fretted, minF, barre, fingers };
 }
 
+
+// Well-known moveable shapes: offsets from the fret of the root note on that string (x = muted).
+// Shifted up the neck they become the familiar barre chords. Standard guitar tuning only.
+const X = -1;
+const SHAPES = [
+  { rootString: 0, name: 'E shape', q: { '': [0, 2, 2, 1, 0, 0], m: [0, 2, 2, 0, 0, 0], 7: [0, 2, 0, 1, 0, 0], m7: [0, 2, 0, 0, 0, 0], maj7: [0, 2, 1, 1, 0, 0],
+    6: [0, 2, 2, 1, 2, 0], m6: [0, 2, 2, 0, 2, 0], sus4: [0, 2, 2, 2, 0, 0], sus2: [0, 2, 4, 4, 0, 0], 9: [0, 2, 0, 1, 0, 2], add9: [0, 2, 2, 1, 0, 2],
+    m9: [0, 2, 0, 0, 0, 2], '7sus4': [0, 2, 0, 2, 0, 0], 5: [0, 2, 2, X, X, X] } },
+  { rootString: 1, name: 'A shape', q: { '': [X, 0, 2, 2, 2, 0], m: [X, 0, 2, 2, 1, 0], 7: [X, 0, 2, 0, 2, 0], m7: [X, 0, 2, 0, 1, 0], maj7: [X, 0, 2, 1, 2, 0],
+    6: [X, 0, 2, 2, 2, 2], m6: [X, 0, 2, 2, 1, 2], sus4: [X, 0, 2, 2, 3, 0], sus2: [X, 0, 2, 2, 0, 0], add9: [X, 0, 2, 4, 2, 0],
+    '7sus4': [X, 0, 2, 0, 3, 0], m7b5: [X, 0, 1, 0, 1, X], 5: [X, 0, 2, 2, X, X] } },
+  { rootString: 2, name: 'D shape', q: { '': [X, X, 0, 2, 3, 2], m: [X, X, 0, 2, 3, 1], 7: [X, X, 0, 2, 1, 2], m7: [X, X, 0, 2, 1, 1], maj7: [X, X, 0, 2, 2, 2],
+    sus4: [X, X, 0, 2, 3, 3], sus2: [X, X, 0, 2, 3, 0], 6: [X, X, 0, 2, 0, 2], m6: [X, X, 0, 2, 0, 1], m7b5: [X, X, 0, 1, 1, 1] } },
+];
+
 const cache = new Map();
 
 export function voicings(chordName, instrument = 'guitar', limit = 12) {
@@ -77,6 +93,7 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
   const out = [];
   if (ch) {
     const seen = new Set();
+    const pref = new Set();
     const n = tuning.strings.length;
     for (let base = 0; base <= 12; base++) {
       const lo = Math.max(1, base);
@@ -97,7 +114,7 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
         const k = frets.join(',');
         if (seen.has(k)) return;
         const a = analyse(frets, tuning);
-        if (a.sounding.length < tuning.minSound) return;
+        if (a.sounding.length < (ch.quality === '5' ? 3 : tuning.minSound)) return;
         // contiguous sounding strings
         if (a.sounding[a.sounding.length - 1] - a.sounding[0] + 1 !== a.sounding.length) return;
         if (a.fingers > 4) return;
@@ -106,6 +123,7 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
           const fs = a.fretted.map((i) => frets[i]);
           if (Math.max(...fs) - Math.min(...fs) > 3) return;
         }
+        for (let i = 1; i < n; i++) if (frets[i] > 0 && frets[i - 1] > 0 && Math.abs(frets[i] - frets[i - 1]) > 2) return; // neighbouring pressed strings more than 2 frets apart is a stretch
         const pcs = new Set(a.sounding.map((i) => (tuning.strings[i] + frets[i]) % 12));
         for (const r of ch.required) if (!pcs.has(r)) return;
         if (tuning.lowBass) {
@@ -116,6 +134,8 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
         if (a.barre) for (let i = a.barre.from; i <= a.barre.to; i++) if (frets[i] < a.barre.fret) return;
         seen.add(k);
         const open = a.sounding.filter((i) => frets[i] === 0).length;
+        const maxF0 = a.fretted.length ? Math.max(...a.fretted.map((i) => frets[i])) : 0;
+        if (open > 0 && maxF0 > 4) return; // open strings mixed with a far-up fretted note is not a real shape
         if (a.minF >= 4 && open > 0) return; // open strings next to shapes high up the neck are not something people play
         const muted = n - a.sounding.length;
         const maxF = a.fretted.length ? Math.max(...a.fretted.map((i) => frets[i])) : 0;
@@ -128,9 +148,23 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
           (maxF <= 4 ? open * 0.6 : -open * 1.5) +
           (a.minF >= 4 ? open * 2.5 : 0) -
           (a.sounding.length - tuning.minSound) * 0.35 -
-          (a.sounding.length === n ? 0.3 : 0);
+          (a.sounding.length === n ? 0.3 : 0) -
+          (pref.has(k) ? 2.5 : 0);
         out.push({ frets, base: baseFretOf(frets), barre: a.barre, fingers: a.fingers, cost, minF: a.minF });
       };
+      if (base === 0 && instrument === 'guitar' && ch.quality !== null) {
+        for (const sh of SHAPES) {
+          const t = sh.q[ch.quality];
+          if (!t) continue;
+          const rf = (((ch.bass !== undefined && !ch.slash ? ch.root : ch.root) - tuning.strings[sh.rootString]) % 12 + 12) % 12;
+          for (const r of rf === 0 ? [12] : [rf]) {
+            const fr = t.map((o) => (o < 0 ? -1 : o + r));
+            if (Math.max(...fr) > 15 || ch.slash) continue;
+            pref.add(fr.join(','));
+            check(fr);
+          }
+        }
+      }
       rec(0);
     }
     out.sort((x, y) => x.cost - y.cost);
