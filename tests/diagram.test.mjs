@@ -66,3 +66,19 @@ console.log('diagram tests passed');
   for (const v of voicings('DMaj7')) v.frets.forEach((f, i) => { if (f >= 0) assert.ok(tones.has(([40, 45, 50, 55, 59, 64][i] + f) % 12), 'wrong note in ' + v.frets.join(',')); });
   console.log('chord spelling tests passed');
 }
+
+// the common moveable barre shapes must be reachable, not crowded out by near-copies of open shapes
+{
+  const has2 = (c, s) => voicings(c).some((v) => v.frets.map((f) => (f < 0 ? 'x' : f)).join('') === s);
+  assert.ok(has2('Em7', 'x79787'), 'Em7 offers x79787');
+  assert.ok(has2('Dmaj7', 'x57675'), 'Dmaj7 offers x57675');
+  assert.ok(has2('Am7', '575555'), 'Am7 offers 575555');
+  assert.ok(has2('Bm7', '797777'), 'Bm7 offers 797777');
+  assert.ok(has2('F', '133211'), 'F offers the full barre');
+  // nothing ends up as just a muted copy of another listed shape
+  for (const c of ['Em7', 'Cmaj7', 'G7']) {
+    const vs = voicings(c);
+    for (const a of vs) for (const b of vs) if (a !== b && a.frets.every((f, i) => f < 0 || b.frets[i] === f) && b.frets.findIndex((f) => f >= 0) === a.frets.findIndex((f) => f >= 0)) assert.fail(`${c}: ${a.frets} duplicates ${b.frets}`);
+  }
+  console.log('barre availability tests passed');
+}

@@ -116,6 +116,7 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
         if (a.barre) for (let i = a.barre.from; i <= a.barre.to; i++) if (frets[i] < a.barre.fret) return;
         seen.add(k);
         const open = a.sounding.filter((i) => frets[i] === 0).length;
+        if (a.minF >= 4 && open > 0) return; // open strings next to shapes high up the neck are not something people play
         const muted = n - a.sounding.length;
         const maxF = a.fretted.length ? Math.max(...a.fretted.map((i) => frets[i])) : 0;
         const cost =
@@ -124,7 +125,8 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
           muted * 0.6 +
           maxF * 0.18 + a.minF * 0.3 +
           (a.fretted.length ? (maxF - a.minF) * 0.3 : 0) -
-          (maxF <= 4 ? open * 0.6 : -open * 1.5) -
+          (maxF <= 4 ? open * 0.6 : -open * 1.5) +
+          (a.minF >= 4 ? open * 2.5 : 0) -
           (a.sounding.length - tuning.minSound) * 0.35 -
           (a.sounding.length === n ? 0.3 : 0);
         out.push({ frets, base: baseFretOf(frets), barre: a.barre, fingers: a.fingers, cost, minF: a.minF });
@@ -132,20 +134,32 @@ export function voicings(chordName, instrument = 'guitar', limit = 12) {
       rec(0);
     }
     out.sort((x, y) => x.cost - y.cost);
-    // keep a spread of positions: at most 4 per neck position (barre shapes get their own slots), best cost first
-    const perPos = {};
+    // Pick a spread of the neck instead of the N cheapest shapes (which are all near-copies of the open shapes):
+    //  - skip a shape that is just a better-ranked one with more strings muted (same frets on the strings it plays)
+    //  - at most a few per neck zone (open/low, 4-6, 7-9, 10+), cheapest first inside each zone
+    const zoneOf = (v) => (v.minF <= 3 ? 0 : v.minF <= 6 ? 1 : v.minF <= 9 ? 2 : 3);
+    const caps = [4, 3, 3, 1];
+    const used = [0, 0, 0, 0];
+    const covered = (v, p) => v.frets.every((f, i) => f < 0 || p.frets[i] === f);
     const best = [];
-    for (const v of out) {
-      const bk = v.minF + (v.barre ? 'b' : '');
-      if ((perPos[bk] = (perPos[bk] || 0) + 1) > 4) continue;
-      best.push(v);
-      if (best.length >= limit) break;
+    const rest = [];
+    // a shape that is the same as a fuller one with only its top strings muted is dropped (x7978x vs x79787)
+    const low = (v) => v.frets.findIndex((f) => f >= 0);
+    const pool = out.filter((v) => !out.some((p) => p !== v && low(p) === low(v) && covered(v, p)));
+    for (const v of pool) {
+      if (best.some((p) => covered(v, p))) continue; // just a cheaper shape with more strings muted
+      const z = zoneOf(v);
+      if (used[z] < caps[z]) { used[z]++; best.push(v); } else if (z <= 2) rest.push(v);
     }
+    // zones with few shapes hand their unused slots to the cheapest leftovers (never very high up the neck)
+    for (const v of rest) { if (best.length >= limit) break; best.push(v); }
+    best.splice(limit);
+    best.sort((x, y) => x.cost - y.cost);
     // best shape first, the rest in order up the neck
     const first = best[0];
-    const rest = best.slice(1).sort((x, y) => (x.minF - y.minF) || (x.cost - y.cost));
+    const tail = best.slice(1).sort((x, y) => (x.minF - y.minF) || (x.cost - y.cost));
     out.length = 0;
-    if (first) out.push(first, ...rest);
+    if (first) out.push(first, ...tail);
   }
   cache.set(key, out);
   return out;
