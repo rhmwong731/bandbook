@@ -21,7 +21,7 @@ const QUALITIES = [
   ['m', [0, 3, 7]], ['5', [0, 7]], ['', [0, 4, 7]],
 ];
 
-const ALIASES = [[/^M7$/, 'maj7'], [/^(min|-)/, 'm'], [/^\+/, 'aug'], [/^°7$/, 'dim7'], [/^°/, 'dim'], [/^M/, 'maj'], [/^ø/, 'm7b5']];
+const ALIASES = [[/^M7$/, 'maj7'], [/^(Maj|MAJ|Ma(?!j)|Δ|△)/, 'maj'], [/^(Min|MIN|min|mi(?!n)|-)/, 'm'], [/^\+/, 'aug'], [/^°7$/, 'dim7'], [/^°/, 'dim'], [/^M/, 'maj'], [/^ø/, 'm7b5']];
 
 export function parseChord(name) {
   const m = String(name || '').trim().match(/^([A-G][#b]?)([^/]*)(?:\/([A-G][#b]?))?$/);

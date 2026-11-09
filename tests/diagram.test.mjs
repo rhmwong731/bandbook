@@ -53,3 +53,16 @@ const svg = renderSvg(voicings('C')[0], { name: 'C' });
 assert.ok(svg.startsWith('<svg') && svg.includes('cd-dot') && svg.includes('cd-nut'));
 assert.ok(renderSvg(null, { name: 'Q' }).includes('no shape'));
 console.log('diagram tests passed');
+
+// different spellings of the same chord must give the same shapes (DMaj7 used to come out wrong)
+{
+  const sh = (c) => voicings(c).map((v) => v.frets.map((f) => (f < 0 ? 'x' : f)).join('')).join(' ');
+  for (const [a, b] of [['DMaj7', 'Dmaj7'], ['DM7', 'Dmaj7'], ['DMAJ7', 'Dmaj7'], ['DΔ7', 'Dmaj7'], ['DMin7', 'Dm7'], ['Dmin7', 'Dm7'], ['D-7', 'Dm7'], ['DMaj9', 'Dmaj9'], ['CMaj7', 'Cmaj7']]) {
+    assert.equal(sh(a), sh(b), `${a} should match ${b}`);
+  }
+  assert.ok(voicings('DMaj7').some((v) => v.frets.map((f) => (f < 0 ? 'x' : f)).join('') === 'x57675'), 'x57675 is offered for Dmaj7');
+  // every shape offered for Dmaj7 only uses D, F#, A, C#
+  const tones = new Set([2, 6, 9, 1]);
+  for (const v of voicings('DMaj7')) v.frets.forEach((f, i) => { if (f >= 0) assert.ok(tones.has(([40, 45, 50, 55, 59, 64][i] + f) % 12), 'wrong note in ' + v.frets.join(',')); });
+  console.log('chord spelling tests passed');
+}
