@@ -1044,6 +1044,18 @@ $('btnMembers').onclick = async () => {
   } catch (e) { toast(e.status === 403 ? 'That admin code is not right.' : e.message, 5000); }
 };
 
+$('btnShareAll').onclick = async () => {
+  const todo = state.songs.filter((x) => !x.driveId && !x.demo);
+  if (!todo.length) return toast('Every song on this device is already shared with the band');
+  if (!(await askDialog({ ok: `Share ${todo.length}`, message: `Share ${todo.length} song${todo.length > 1 ? 's' : ''} with the band?\nEveryone in the band will get ${todo.length > 1 ? 'them' : 'it'} at their next sync. Your annotations stay private.` }))) return;
+  let n = 0;
+  try { for (const x of todo) { await shareSong(x); n++; $('syncState').textContent = `Sharing ${n} of ${todo.length}…`; } }
+  catch (e) { toast(`Shared ${n} of ${todo.length}. ${e.message}`, 6000); }
+  await loadSongs();
+  renderList();
+  updateSyncState();
+  if (n === todo.length) toast(`Shared ${n} song${n > 1 ? 's' : ''} with the band`);
+};
 $('btnSync').onclick = async () => {
   if (!srv.isJoined()) { fillSettings(); $('dlgSettings').showModal(); return; }
   const btn = $('btnSync');
@@ -1065,7 +1077,9 @@ $('btnSync').onclick = async () => {
     if (stats.ink) bits.push(`${stats.ink} annotation set${stats.ink > 1 ? 's' : ''}`);
     if (stats.sets) bits.push(`${stats.sets} set list${stats.sets > 1 ? 's' : ''}`);
     if (stats.conflicts) bits.push(`${stats.conflicts} conflict${stats.conflicts > 1 ? 's' : ''} (your version kept as a copy)`);
-    toast(bits.length ? 'Synced: ' + bits.join(', ') : 'Everything is up to date', 4000);
+    const localOnly = state.songs.filter((x) => !x.driveId && !x.demo).length;
+    const note = localOnly ? ` ${localOnly} song${localOnly > 1 ? 's are' : ' is'} only on this device (tagged "local"). Share ${localOnly > 1 ? 'them' : 'it'} from More, or Settings > Share all.` : '';
+    toast((bits.length ? 'Synced: ' + bits.join(', ') : 'Everything is up to date') + '.' + note, localOnly ? 8000 : 4000);
   } catch (e) {
     toast(e.message, 6000);
     updateSyncState();
