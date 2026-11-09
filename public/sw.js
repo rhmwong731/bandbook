@@ -1,7 +1,7 @@
 // Offline app shell. Same-origin GETs: cache-first, refreshed in the background.
-const CACHE = 'bandbook-v20';
+const CACHE = 'bandbook-v21';
 const SHELL = ['./', 'index.html', 'styles.css', 'manifest.webmanifest', 'icon.svg',
-  'js/app.js', 'js/chordpro.js', 'js/ink.js', 'js/store.js', 'js/server.js', 'js/sync.js', 'js/sets.js', 'js/order.js', 'js/dnd.js', 'js/diagram.js', 'js/metronome.js', 'js/docview.js', 'js/backup.js', 'js/offline.js', 'vendor/pdf.min.js', 'vendor/pdf.worker.min.js'];
+  'js/app.js', 'js/chordpro.js', 'js/ink.js', 'js/store.js', 'js/server.js', 'js/sync.js', 'js/merge.js', 'js/sets.js', 'js/order.js', 'js/dnd.js', 'js/diagram.js', 'js/metronome.js', 'js/docview.js', 'js/backup.js', 'js/offline.js', 'vendor/pdf.min.js', 'vendor/pdf.worker.min.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

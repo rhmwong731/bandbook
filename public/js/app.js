@@ -1134,6 +1134,7 @@ $('btnSync').onclick = async () => {
     if (stats.pushed) bits.push(`${stats.pushed} uploaded`);
     if (stats.ink) bits.push(`${stats.ink} annotation set${stats.ink > 1 ? 's' : ''}`);
     if (stats.sets) bits.push(`${stats.sets} set list${stats.sets > 1 ? 's' : ''}`);
+    if (stats.merged) bits.push(`${stats.merged} edit${stats.merged > 1 ? 's' : ''} merged with the band's changes`);
     if (stats.conflicts) bits.push(`${stats.conflicts} conflict${stats.conflicts > 1 ? 's' : ''} (your version kept as a copy)`);
     const localOnly = state.songs.filter((x) => !x.driveId && !x.demo).length;
     const note = localOnly ? ` ${localOnly} song${localOnly > 1 ? 's are' : ' is'} only on this device (tagged "local"). Share ${localOnly > 1 ? 'them' : 'it'} from More, or Settings > Share all.` : '';

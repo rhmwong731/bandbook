@@ -6,13 +6,14 @@
 import * as db from './store.js';
 import * as srv from './server.js';
 import * as sets from './sets.js';
+import { merge3 } from './merge.js';
 
 const hiddenIds = () => new Set(db.settings.get('hidden', []));
 const hide = (id) => db.settings.set('hidden', [...hiddenIds(), id].slice(-500));
 
 export async function syncAll(say = () => {}) {
   if (!srv.isJoined()) throw new Error('Join your band first (Settings).');
-  const stats = { pulled: 0, pushed: 0, conflicts: 0, ink: 0, sets: 0 };
+  const stats = { pulled: 0, pushed: 0, conflicts: 0, merged: 0, ink: 0, sets: 0 };
   let retry = false; // something could not be fetched yet: do not move the cursor past it
 
   say('Checking for changes…');
@@ -26,6 +27,9 @@ export async function syncAll(say = () => {}) {
       if (s.demo && !s.driveId && !s.dirty && !(ink && ink.strokes && ink.strokes.length)) { await db.del('songs', s.id); await db.del('ink', s.id); }
     }
     songs = await db.all('songs');
+  }
+  for (const s of songs) { // remember what we last had in common with the server, to merge later edits
+    if (s.driveId && !s.dirty && !db.isDoc(s) && s.baseText !== s.text) { s.baseText = s.text; await db.put('songs', s); }
   }
   const byId = new Map(songs.map((s) => [s.id, s]));
 
@@ -53,12 +57,26 @@ export async function syncAll(say = () => {}) {
     say(`Downloading ${r.title}…`);
     if (!s) {
       const n = db.makeSong({ id: r.id, text: r.text, driveId: r.id, remoteModified: r.rev, fileName: r.title, folder: r.folder });
+      n.baseText = r.text;
       await db.put('songs', n);
       stats.pulled++;
       continue;
     }
     if (s.dirty && s.text !== r.text) {
-      // you edited locally AND someone changed it: keep your version as a personal copy
+      // edited here and changed elsewhere: merge if the edits touch different lines, else keep yours as a copy
+      const merged = typeof s.baseText === 'string' ? merge3(s.baseText, s.text, r.text) : null;
+      if (merged !== null) {
+        s.text = merged;
+        s.dirty = merged !== r.text;
+        s.baseText = r.text;
+        s.driveId = r.id;
+        s.remoteModified = r.rev;
+        if (!s.folderDirty) s.folder = r.folder;
+        db.refreshMeta(s);
+        await db.put('songs', s);
+        stats.merged++;
+        continue;
+      }
       const copy = db.makeSong({ text: s.text, folder: s.folder });
       copy.title = s.title + ' (my edits)';
       await db.put('songs', copy);
@@ -67,6 +85,7 @@ export async function syncAll(say = () => {}) {
       stats.conflicts++;
     }
     s.text = r.text;
+    s.baseText = r.text;
     s.dirty = false;
     s.driveId = r.id;
     s.remoteModified = r.rev;
@@ -84,6 +103,7 @@ export async function syncAll(say = () => {}) {
     try {
       const r = await srv.putSong(s.id, { baseRev: s.remoteModified || 0, kind: db.isDoc(s) ? s.kind : 'cho', title: s.title, text: db.isDoc(s) ? '' : s.text, folder: s.folder || '', mime: s.mime, file_name: s.fileName });
       s.remoteModified = r.rev; s.dirty = false; s.folderDirty = false;
+      if (!db.isDoc(s)) s.baseText = s.text;
       await db.put('songs', s);
       stats.pushed++;
     } catch (e) {
@@ -168,6 +188,7 @@ export async function shareSong(song) {
     r = await srv.putSong(song.id, { ...body, baseRev: e.data.current.rev }); // sharing again after leaving it: replace
   }
   if (doc) r = await srv.putFile(song.id, file.blob);
+  if (!doc) song.baseText = song.text;
   song.driveId = song.id; song.remoteModified = r.rev; song.dirty = false; song.folderDirty = false; song.demo = false;
   await db.put('songs', song);
   const ink = await db.get('ink', song.id);
