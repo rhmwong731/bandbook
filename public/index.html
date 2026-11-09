@@ -41,35 +41,39 @@
         <span id="setPos"></span>
         <button id="setNext" title="Next song in set (Right arrow)">&rsaquo;</button>
       </div>
-      <div class="group" id="modeGroup">
-        <button id="btnPlay" class="on">Play</button>
-        <button id="btnEdit">Edit</button>
+      <div id="tools">
+        <button id="btnAnno" class="only-narrow" title="Show the pen, highlighter and note tools">Annotate</button>
+        <div class="group" id="modeGroup">
+          <button id="btnPlay" class="on">Play</button>
+          <button id="btnEdit">Edit</button>
+        </div>
+        <div class="group" id="transposeGroup">
+          <button id="trDown" title="Transpose down">&minus;</button>
+          <span id="trLabel">0</span>
+          <button id="trUp" title="Transpose up">+</button>
+        </div>
+        <div class="group" id="viewGroup">
+          <select id="chordStyle" title="How chords are shown">
+            <option value="letters">Chords: A B C</option>
+            <option value="nashville">Chords: 1 4 5</option>
+            <option value="roman">Chords: I IV V</option>
+          </select>
+          <button id="btnChords" title="Chord diagrams for this song">Diagrams</button>
+          <button id="btnDark" title="Dark page (easier on the eyes on a dark stage)">Dark</button>
+        </div>
+        <div class="group" id="zoomGroup">
+          <button id="zoomOut" title="Smaller">A&minus;</button>
+          <button id="zoomIn" title="Larger">A+</button>
+        </div>
+        <div class="group" id="scrollGroup">
+          <button id="btnScroll">Scroll</button>
+          <input id="scrollSpeed" type="range" min="5" max="120" value="30" title="Auto-scroll speed">
+        </div>
+        <button id="btnMetro" title="Metronome and count-in">Metronome</button>
+        <button id="btnMore" title="More">More</button>
       </div>
-      <div class="group" id="transposeGroup">
-        <button id="trDown" title="Transpose down">&minus;</button>
-        <span id="trLabel">0</span>
-        <button id="trUp" title="Transpose up">+</button>
-      </div>
-      <div class="group" id="viewGroup">
-        <select id="chordStyle" title="How chords are shown">
-          <option value="letters">Chords: A B C</option>
-          <option value="nashville">Chords: 1 4 5</option>
-          <option value="roman">Chords: I IV V</option>
-        </select>
-        <button id="btnChords" title="Chord diagrams for this song">Diagrams</button>
-        <button id="btnDark" title="Dark page (easier on the eyes on a dark stage)">Dark</button>
-      </div>
-      <div class="group" id="zoomGroup">
-        <button id="zoomOut" title="Smaller">A&minus;</button>
-        <button id="zoomIn" title="Larger">A+</button>
-      </div>
-      <div class="group" id="scrollGroup">
-        <button id="btnScroll">Scroll</button>
-        <input id="scrollSpeed" type="range" min="5" max="120" value="30" title="Auto-scroll speed">
-      </div>
-      <button id="btnMetro" title="Metronome and count-in">Metronome</button>
       <button id="btnStage" title="Stage view: big, distraction-free, for performing">Stage</button>
-      <button id="btnMore" title="More">More</button>
+      <button id="btnTools" class="only-narrow" title="Show / hide the toolbar">Tools</button>
     </header>
 
     <div id="metroPanel" class="panel" hidden>
@@ -93,7 +97,7 @@
     </div>
 
     <div id="chordStrip" class="panel" hidden>
-      <label class="inl">Instrument <select id="instrument"><option value="guitar">Guitar</option><option value="ukulele">Ukulele</option></select></label>
+      <label class="inl"><span class="hide-narrow">Instrument </span><select id="instrument" title="Instrument"><option value="guitar">Guitar</option><option value="ukulele">Ukulele</option></select></label>
       <div id="chordCards"></div>
     </div>
 
