@@ -24,6 +24,23 @@ assert.ok(A.token && B.token && A.token !== B.token);
 assert.equal((await call('GET', '/api/me', { token: A.token })).data.member.name, 'Raph');
 assert.equal((await call('GET', '/api/me', { token: 'f'.repeat(64) })).status, 401);
 
+// --- link a second device
+assert.equal((await call('POST', '/api/link')).status, 401, 'link needs a token');
+const L = (await call('POST', '/api/link', { token: A.token })).data;
+assert.match(L.code, /^[a-z0-9]{6}$/);
+assert.equal((await call('POST', '/api/join', { body: { link: 'zzzzzz' } })).status, 403, 'wrong link code');
+const A2 = (await call('POST', '/api/join', { body: { link: L.code.toUpperCase() } })).data;
+assert.equal(A2.member.id, A.member.id, 'second device is the same member');
+assert.ok(A2.token && A2.token !== A.token);
+assert.equal((await call('POST', '/api/join', { body: { link: L.code } })).status, 403, 'link code works once');
+assert.equal((await call('GET', '/api/me', { token: A2.token })).data.member.name, 'Raph');
+const inkSong = id();
+await call('PUT', '/api/songs/' + inkSong, { token: A.token, body: { baseRev: 0, kind: 'cho', title: 'Ink', text: '[G]x', folder: '' } });
+await call('PUT', '/api/ink/' + inkSong, { token: A.token, body: { json: '{"strokes":1}' } });
+assert.ok((await call('GET', '/api/sync?since=0', { token: A2.token })).data.ink.some((i) => i.song_id === inkSong), 'linked device sees the same annotations');
+assert.equal((await call('GET', '/api/sync?since=0', { token: B.token })).data.ink.some((i) => i.song_id === inkSong), false, 'other members do not');
+await call('PUT', '/api/ink/' + inkSong, { token: A.token, body: { json: '{}' } });
+
 // --- songs: create, pull, edit, conflict, folder move
 const s1 = id();
 let r = await call('PUT', '/api/songs/' + s1, { token: A.token, body: { baseRev: 0, kind: 'cho', title: 'One', text: '{title: One}\n[G]hi', folder: 'Originals' } });
@@ -82,8 +99,8 @@ await call('PUT', '/api/ink/' + s1, { token: A.token, body: { json: JSON.stringi
 await call('PUT', '/api/ink/' + s1, { token: B.token, body: { json: JSON.stringify({ strokes: ['b'] }) } });
 const inkA = (await call('GET', '/api/sync?since=0', { token: A.token })).data.ink;
 const inkB = (await call('GET', '/api/sync?since=0', { token: B.token })).data.ink;
-assert.equal(inkA.length, 1); assert.equal(inkB.length, 1);
-assert.deepEqual(JSON.parse(inkA[0].json).strokes, ['a']);
+assert.equal(inkA.filter((i) => i.song_id !== inkSong).length, 1); assert.equal(inkB.length, 1);
+assert.deepEqual(JSON.parse(inkA.find((i) => i.song_id !== inkSong).json).strokes, ['a']);
 assert.deepEqual(JSON.parse(inkB[0].json).strokes, ['b']);
 
 // --- folders merge
@@ -105,6 +122,7 @@ assert.ok(list.some((m) => m.id === B.member.id));
 assert.equal((await call('DELETE', '/api/members/' + B.member.id, { headers: { 'X-Admin-Code': 'adminpass' } })).status, 200);
 assert.equal((await call('GET', '/api/sync', { token: B.token })).status, 401, 'removed member is locked out');
 assert.equal((await call('GET', '/api/sync', { token: A.token })).status, 200);
+assert.equal((await call('GET', '/api/members', { headers: { 'X-Admin-Code': 'adminpass' } })).data.members.filter((m) => m.name === 'Raph').length, 1, 'linked device is not a second member');
 
 // --- join rate limit
 let limited = false;

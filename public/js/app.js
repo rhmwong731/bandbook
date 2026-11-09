@@ -1011,6 +1011,23 @@ $('btnJoin').onclick = async () => {
   } catch (e) { toast(e.message, 6000); }
   finally { $('btnJoin').disabled = false; }
 };
+$('btnLink').onclick = async () => {
+  const link = $('setLink').value.trim();
+  if (!link) return toast('Enter the link code from your other device');
+  $('btnLink').disabled = true;
+  try {
+    const r = await srv.joinWithLink($('setServer').value, link);
+    fillSettings();
+    toast(`Linked as ${r.member.name}. Tap Sync to get the band's songs and your annotations.`, 6000);
+  } catch (e) { toast(e.message, 6000); }
+  finally { $('btnLink').disabled = false; }
+};
+$('btnLinkDev').onclick = async () => {
+  try {
+    const r = await srv.makeLinkCode();
+    await askDialog({ ok: 'Done', message: `Link code: ${r.code.toUpperCase()}\n\nOn your other device open Settings, “Already joined on another device?”, and type it. It works once, for ${r.minutes} minutes.` });
+  } catch (e) { toast(e.message, 6000); }
+};
 $('btnLeave').onclick = async () => {
   if (!(await askDialog({ ok: 'Leave band', message: 'Leave the band on this device? Everything already on this device stays. You can join again with the invite code.' }))) return;
   srv.leave();

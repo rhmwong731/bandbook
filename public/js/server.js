@@ -47,6 +47,19 @@ export async function join(url, code, name) {
   return r.data;
 }
 
+export async function joinWithLink(url, link) {
+  const base = clean(url);
+  if (!/^https?:\/\//i.test(base)) throw new ApiError(0, 'The address should start with https://');
+  const r = await request('POST', '/api/join', { base, token: '', body: { link } });
+  db.settings.set('serverUrl', base);
+  db.settings.set('token', r.data.token);
+  db.settings.set('memberName', r.data.member.name);
+  db.settings.set('bandName', r.data.band || '');
+  db.settings.set('syncSeq', 0);
+  return r.data;
+}
+export const makeLinkCode = async () => (await request('POST', '/api/link')).data;
+
 export function leave() {
   for (const k of ['token', 'memberName', 'bandName']) db.settings.set(k, '');
   db.settings.set('syncSeq', 0);

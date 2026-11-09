@@ -281,3 +281,4 @@ body.night #viewport { background: #000; }
   #editorBar { flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding: 6px 10px; }
   #editorBar > * { flex: none; }
 }
+#askMsg { white-space: pre-line; }

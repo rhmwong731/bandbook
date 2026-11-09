@@ -192,11 +192,16 @@
         <label>Your name<input id="setName" autocomplete="off" placeholder="So the band knows who made changes"></label>
         <label>Band server address<input id="setServer" autocomplete="off" placeholder="https://bandbook.yourname.workers.dev"></label>
         <div class="row"><button type="button" id="btnJoin" class="primary">Join band</button></div>
+        <details><summary>Already joined on another device?</summary>
+          <p class="hint">On that device open Settings and tap “Link another device”. Type the code it shows here. You keep the same name and your own annotations.</p>
+          <label>Link code<input id="setLink" autocomplete="off" autocapitalize="off"></label>
+          <div class="row"><button type="button" id="btnLink">Link this device</button></div>
+        </details>
       </div>
       <div id="joinedBox" hidden>
         <p id="joinedInfo"></p>
         <p class="hint">Songs, PDFs and set lists are shared with everyone in the band. Your annotations stay private to you.</p>
-        <div class="row"><button type="button" id="btnShareAll" title="Upload every song marked local so the band gets it">Share all local songs</button><button type="button" id="btnMembers">Members&hellip;</button><button type="button" id="btnLeave">Leave band on this device</button></div>
+        <div class="row"><button type="button" id="btnShareAll" title="Upload every song marked local so the band gets it">Share all local songs</button><button type="button" id="btnLinkDev" title="Show a code to sign in your tablet or phone as you">Link another device</button><button type="button" id="btnMembers">Members&hellip;</button><button type="button" id="btnLeave">Leave band on this device</button></div>
       </div>
     </div>
     <div id="backupBox">

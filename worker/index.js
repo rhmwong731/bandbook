@@ -41,7 +41,17 @@ async function nextSeq(env) {
 async function authenticate(req, env) {
   const m = (req.headers.get('Authorization') || '').match(/^Bearer ([0-9a-f]{64})$/);
   if (!m) return null;
-  return env.DB.prepare('SELECT id, name FROM members WHERE token_hash = ? AND revoked = 0').bind(await sha256(m[1])).first();
+  await ensureOwnerColumn(env);
+  // a linked device (owner set) acts as its owner: same member id, so same private annotations
+  return env.DB.prepare('SELECT COALESCE(m.owner, m.id) AS id, m.name AS name FROM members m LEFT JOIN members o ON o.id = m.owner WHERE m.token_hash = ? AND m.revoked = 0 AND (m.owner IS NULL OR o.revoked = 0)').bind(await sha256(m[1])).first();
+}
+
+// Databases made before "link another device" get the extra column the first time the server runs.
+let ownerReady = false;
+async function ensureOwnerColumn(env) {
+  if (ownerReady) return;
+  try { await env.DB.prepare('ALTER TABLE members ADD COLUMN owner TEXT').run(); } catch { /* already there */ }
+  ownerReady = true;
 }
 
 async function readJson(req, limit) {
@@ -67,10 +77,28 @@ async function guessGate(req, env, kind) {
   };
 }
 
+const LINK_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+async function makeLink(env, me) {
+  const code = [...crypto.getRandomValues(new Uint8Array(6))].map((b) => LINK_ALPHABET[b % LINK_ALPHABET.length]).join('');
+  await env.FILES.put('link:' + code, me.id, { expirationTtl: 600 });
+  return json({ code, minutes: 10 });
+}
+
 async function join(req, env) {
   const gate = await guessGate(req, env, 'join');
   if (gate.blocked) return fail(429, 'Too many tries. Wait ten minutes and try again.');
   const body = await readJson(req, 2000);
+  if (body.link) { // second device for an existing member: needs the one-time code made on the first device
+    await ensureOwnerColumn(env);
+    const key = 'link:' + str(body.link, 20).trim().toLowerCase();
+    const ownerId = await env.FILES.get(key);
+    const owner = ownerId && (await env.DB.prepare('SELECT id, name FROM members WHERE id = ? AND revoked = 0 AND owner IS NULL').bind(ownerId).first());
+    if (!owner) { await gate.miss(); return fail(403, 'That link code is not right, or it has run out. Make a new one on your other device.'); }
+    await env.FILES.delete(key);
+    const token = newToken();
+    await env.DB.prepare('INSERT INTO members (id, name, token_hash, created, owner) VALUES (?, ?, ?, ?, ?)').bind(newId(), owner.name, await sha256(token), Date.now(), owner.id).run();
+    return json({ token, member: { id: owner.id, name: owner.name }, band: env.BAND_NAME || 'Band' });
+  }
   const name = str(body.name, 40).trim();
   if (!name) return fail(400, 'Enter your name.');
   if (!env.INVITE_CODE) return fail(500, 'The server has no invite code set up.');
@@ -195,16 +223,17 @@ async function putFolders(req, env) {
 }
 
 async function admin(req, env, url) {
+  await ensureOwnerColumn(env);
   const gate = await guessGate(req, env, 'admin');
   if (gate.blocked) return fail(429, 'Too many tries. Wait ten minutes and try again.');
   if (!env.ADMIN_CODE || !(await same(req.headers.get('X-Admin-Code') || '', env.ADMIN_CODE))) { await gate.miss(); return fail(403, 'Admin code needed.'); }
   if (req.method === 'GET') {
-    const r = await env.DB.prepare('SELECT id, name, created FROM members WHERE revoked = 0 ORDER BY created').all();
+    const r = await env.DB.prepare('SELECT id, name, created FROM members WHERE revoked = 0 AND owner IS NULL ORDER BY created').all();
     return json({ members: r.results });
   }
   const m = url.pathname.match(/^\/api\/members\/([A-Za-z0-9_-]+)$/);
   if (req.method === 'DELETE' && m) {
-    await env.DB.prepare('UPDATE members SET revoked = 1 WHERE id = ?').bind(m[1]).run();
+    await env.DB.prepare('UPDATE members SET revoked = 1 WHERE id = ? OR owner = ?').bind(m[1], m[1]).run();
     return json({ ok: true });
   }
   return fail(404, 'Not found');
@@ -226,6 +255,7 @@ export default {
 
       const me = await authenticate(req, env);
       if (!me) return fail(401, 'Not signed in to the band.');
+      if (p === '/api/link' && M === 'POST') return await makeLink(env, me);
       if (p === '/api/me') return json({ member: me, band: env.BAND_NAME || 'Band' });
       if (p === '/api/sync' && M === 'GET') return await syncPull(url, env, me);
       if (p === '/api/folders' && M === 'PUT') return await putFolders(req, env);
