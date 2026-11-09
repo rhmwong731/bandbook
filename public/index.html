@@ -155,6 +155,8 @@
       <button id="sgMetro">Metronome</button>
       <button id="sgChords">Diagrams</button>
       <button id="sgDark">Dark</button>
+      <button id="sgNight" title="Dim red screen that keeps your eyes adjusted on a dark stage">Night</button>
+      <button id="sgLock" title="Ignore all touches until you hold Unlock (pedal, keys and metronome keep working)">Lock</button>
     </div>
 
     <div id="editorWrap" hidden>
@@ -307,6 +309,8 @@
   <div class="row end"><button id="askCancel">Cancel</button><button id="askOk" class="primary">OK</button></div>
 </dialog>
 
+<div id="nightTint" aria-hidden="true"></div>
+<div id="touchLock" hidden><button id="unlockBtn" type="button"><span>Hold to unlock</span></button></div>
 <div id="beatFlash" aria-hidden="true"></div>
 <div id="toast" role="status"></div>
 <script type="module" src="js/app.js"></script>

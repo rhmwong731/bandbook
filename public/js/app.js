@@ -14,7 +14,7 @@ import { byOrder, insertAmong, moveIndex } from './order.js';
 
 const $ = (id) => document.getElementById(id);
 const PAGE_W = 800;
-const state = { songs: [], sets: [], view: 'songs', setId: null, activeSet: null, cur: null, ink: null, mode: 'play', zoom: 1, filter: '', scrolling: false, parsed: null, showChords: false, stage: false };
+const state = { songs: [], sets: [], view: 'songs', setId: null, activeSet: null, cur: null, ink: null, mode: 'play', zoom: 1, filter: '', scrolling: false, parsed: null, showChords: false, stage: false, locked: false };
 const ink = new InkLayer($('ink'), $('viewport'));
 
 // ---------- helpers ----------
@@ -1059,11 +1059,11 @@ $('btnSync').onclick = async () => {
 };
 
 // ---------- dark page / chord style ----------
-function applyDark(on) {
+function applyDark(on, persist = true) {
   $('page').classList.toggle('dark', on);
   $('btnDark').classList.toggle('on', on);
   $('sgDark').classList.toggle('on', on);
-  db.settings.set('darkPage', on);
+  if (persist) db.settings.set('darkPage', on);
 }
 $('btnDark').onclick = $('sgDark').onclick = () => applyDark(!$('page').classList.contains('dark'));
 
@@ -1373,6 +1373,46 @@ $('formInfo').addEventListener('submit', async (e) => {
 });
 
 // ---------- stage view ----------
+// ---- stage extras: keep awake, night mode, touch lock ----
+let wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (!on) { await wakeLock?.release(); wakeLock = null; return true; }
+    if (!navigator.wakeLock) return false;
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+    return true;
+  } catch { return false; }
+}
+document.addEventListener('visibilitychange', () => { if (state.stage && document.visibilityState === 'visible' && !wakeLock) keepAwake(true); });
+
+let nightPrevDark = null;
+function applyNight(on) {
+  document.body.classList.toggle('night', on);
+  $('sgNight').classList.toggle('on', on);
+  if (on) {
+    if (nightPrevDark === null) nightPrevDark = $('page').classList.contains('dark');
+    applyDark(true, false); // black page under the red tint
+  } else if (nightPrevDark !== null) {
+    applyDark(nightPrevDark, false);
+    nightPrevDark = null;
+  }
+}
+function setLock(on) {
+  state.locked = on;
+  $('touchLock').hidden = !on;
+  $('stageBar').hidden = on || !state.stage;
+  $('unlockBtn').classList.remove('holding');
+}
+let unlockTimer = 0;
+const unlockStart = (e) => { e.preventDefault(); $('unlockBtn').classList.add('holding'); clearTimeout(unlockTimer); unlockTimer = setTimeout(() => setLock(false), 900); };
+const unlockCancel = () => { clearTimeout(unlockTimer); $('unlockBtn').classList.remove('holding'); };
+$('unlockBtn').addEventListener('pointerdown', unlockStart);
+['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => $('unlockBtn').addEventListener(ev, unlockCancel));
+$('touchLock').addEventListener('contextmenu', (e) => e.preventDefault());
+$('sgLock').onclick = () => setLock(true);
+$('sgNight').onclick = () => { const on = !document.body.classList.contains('night'); applyNight(on); db.settings.set('nightMode', on); };
+
 function setStage(on) {
   state.stage = on;
   $('app').classList.toggle('stage', on);
@@ -1382,7 +1422,12 @@ function setStage(on) {
     ink.setTool('off');
     try { document.documentElement.requestFullscreen?.().catch(() => {}); } catch { /* not allowed here */ }
     $('sgScroll').classList.toggle('on', state.scrolling);
+    keepAwake(true).then((ok) => { if (!ok) toast('Could not keep the screen awake here. Turn off auto-lock in your device settings before the gig.', 5000); });
+    if (db.settings.get('nightMode', false)) applyNight(true);
   } else {
+    setLock(false);
+    applyNight(false);
+    keepAwake(false);
     ink.setTool(activeTool);
     try { if (document.fullscreenElement) document.exitFullscreen(); } catch { /* ignore */ }
   }
@@ -1394,9 +1439,9 @@ $('sgScroll').onclick = () => { $('btnScroll').click(); $('sgScroll').classList.
 $('sgBig').onclick = () => $('zoomIn').onclick();
 $('sgSmall').onclick = () => $('zoomOut').onclick();
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && state.stage && !document.querySelector('dialog[open]')) setStage(false);
+  if (e.key === 'Escape' && state.stage && !document.querySelector('dialog[open]')) { if (state.locked) setLock(false); else setStage(false); }
 });
-document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && state.stage) setStage(false); });
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && state.stage && !state.locked) setStage(false); });
 
 // ---------- backup ----------
 $('btnBackup').onclick = async () => {

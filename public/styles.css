@@ -235,3 +235,14 @@ dialog label input:not([type=checkbox]):not([type=range]), dialog label select {
 @keyframes beatflash { from { opacity: .28 } to { opacity: 0 } }
 @keyframes beatflash1 { from { opacity: .5 } to { opacity: 0 } }
 @media (prefers-reduced-motion: reduce) { #beatFlash.go { animation-duration: .01s; } }
+
+/* ---- night (red) mode and touch lock ---- */
+#nightTint { position: fixed; inset: 0; z-index: 80; pointer-events: none; background: #c01818; mix-blend-mode: multiply; display: none; }
+body.night #nightTint { display: block; }
+body.night #beatFlash { background: #a00 !important; }
+#touchLock { position: fixed; inset: 0; z-index: 100; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; background: transparent; }
+#touchLock[hidden] { display: none; }
+#unlockBtn { position: absolute; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); width: 150px; height: 46px; padding: 0; overflow: hidden; border-radius: 12px; background: rgba(30,34,44,.78); border: 1px solid var(--line); color: #fff; font-size: 15px; touch-action: none; }
+#unlockBtn span { position: relative; z-index: 1; }
+#unlockBtn::before { content: ''; position: absolute; inset: 0; background: var(--accent); transform: scaleX(0); transform-origin: left; }
+#unlockBtn.holding::before { transform: scaleX(1); transition: transform .9s linear; }
