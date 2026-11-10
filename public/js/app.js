@@ -1370,7 +1370,9 @@ function toggleMetroPanel() {
 $('btnMetro').onclick = $('sgMetro').onclick = toggleMetroPanel;
 // phone layout: toolbar drop-down and on-demand annotation bar
 $('btnTools').onclick = (e) => { e.stopPropagation(); const open = !$('topbar').classList.contains('tools-open'); $('topbar').classList.toggle('tools-open', open); $('btnTools').classList.toggle('on', open); };
-$('btnAnno').onclick = () => { const on = !$('main').classList.contains('anno-open'); $('main').classList.toggle('anno-open', on); $('btnAnno').classList.toggle('on', on); layout(); };
+$('btnAnno').onclick = () => { const on = !$('main').classList.contains('anno-open'); $('main').classList.toggle('anno-open', on); $('btnAnno').classList.toggle('on', on);
+  if (on) { $('topbar').classList.remove('tools-open'); $('btnTools').classList.remove('on'); } // the pen bar sits right under the toolbar, which would cover it
+  layout(); };
 document.addEventListener('pointerdown', (e) => {
   if (!$('topbar').classList.contains('tools-open') || $('topbar').contains(e.target)) return;
   $('topbar').classList.remove('tools-open');
