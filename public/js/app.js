@@ -7,7 +7,7 @@ import { assess } from './offline.js';
 import { buildBackup, restoreBackup, backupName } from './backup.js';
 import { InkLayer } from './ink.js';
 import * as srv from './server.js';
-import { syncAll, shareSong, shareSetlist, removeSongEverywhere, removeSetEverywhere, keepOffDevice } from './sync.js';
+import { resolveConflict, syncAll, shareSong, shareSetlist, removeSongEverywhere, removeSetEverywhere, keepOffDevice } from './sync.js';
 import * as sets from './sets.js';
 import { enableDrag } from './dnd.js';
 import { byOrder, insertAmong, moveIndex } from './order.js';
@@ -111,10 +111,10 @@ function songRow(s) {
   left.append(t, sub);
   li.append(left);
   const badge = document.createElement('span');
-  badge.className = 'badge ' + (s.dirty || s.folderDirty ? 'dirty' : s.driveId ? 'cloud' : '');
-  badge.textContent = s.dirty || s.folderDirty ? 'edited' : s.driveId ? 'band' : 'local';
+  badge.className = 'badge ' + (s.conflict ? 'conflict' : s.dirty || s.folderDirty ? 'dirty' : s.driveId ? 'cloud' : '');
+  badge.textContent = s.conflict ? 'conflict' : s.dirty || s.folderDirty ? 'edited' : s.driveId ? 'band' : 'local';
   li.append(badge);
-  li.onclick = () => { openSong(s.id); $('sidebar').classList.remove('open'); };
+  li.onclick = async () => { await openSong(s.id); $('sidebar').classList.remove('open'); if (s.conflict) offerConflict(s); };
   return li;
 }
 
@@ -1137,10 +1137,11 @@ $('btnSync').onclick = async () => {
     if (stats.ink) bits.push(`${stats.ink} annotation set${stats.ink > 1 ? 's' : ''}`);
     if (stats.sets) bits.push(`${stats.sets} set list${stats.sets > 1 ? 's' : ''}`);
     if (stats.merged) bits.push(`${stats.merged} edit${stats.merged > 1 ? 's' : ''} merged with the band's changes`);
-    if (stats.conflicts) bits.push(`${stats.conflicts} conflict${stats.conflicts > 1 ? 's' : ''} (your version kept as a copy)`);
+    if (stats.conflicts) bits.push(`${stats.conflicts} song${stats.conflicts > 1 ? 's' : ''} need${stats.conflicts > 1 ? '' : 's'} a decision`);
     const localOnly = state.songs.filter((x) => !x.driveId && !x.demo).length;
     const note = localOnly ? ` ${localOnly} song${localOnly > 1 ? 's are' : ' is'} only on this device (tagged "local"). Share ${localOnly > 1 ? 'them' : 'it'} from More, or Settings > Share all.` : '';
     toast((bits.length ? 'Synced: ' + bits.join(', ') : 'Everything is up to date') + '.' + note, localOnly ? 8000 : 4000);
+    if (stats.conflicts) await offerConflicts();
   } catch (e) {
     toast(e.message, 6000);
     updateSyncState();
@@ -1499,6 +1500,79 @@ $('formInfo').addEventListener('submit', async (e) => {
   else $('curTitle').textContent = song.title;
   updateSyncState();
 });
+
+// ---------- conflicts and version history ----------
+function offerConflict(song) {
+  return new Promise((resolve) => {
+    const d = $('dlgConflict');
+    const c = song.conflict;
+    $('cfTitle').textContent = `“${song.title}”: two versions`;
+    $('cfMsg').textContent = `You and ${c.by || 'someone in the band'} both changed the same lines. Nothing is lost: pick which one the band should have, or keep both as separate songs.`;
+    $('cfTheirs').value = c.theirs;
+    $('cfMine').value = song.text;
+    const done = async (choice) => {
+      if (d.open) d.close();
+      if (choice) {
+        const r = await resolveConflict(song, choice);
+        await loadSongs();
+        renderList();
+        if (state.cur && state.cur.id === song.id) { state.cur = state.songs.find((x) => x.id === song.id) || state.cur; await render(); }
+        updateSyncState();
+        toast(choice === 'both' ? 'Kept both. Your version is the song “(my edits)”.' : choice === 'mine' ? 'Using your version. Sync to share it.' : 'Using the band’s version.');
+      }
+      resolve();
+    };
+    $('cfMineBtn').onclick = () => done('mine');
+    $('cfTheirsBtn').onclick = () => done('theirs');
+    $('cfBoth').onclick = () => done('both');
+    $('cfLater').onclick = () => done(null);
+    d.oncancel = () => done(null);
+    d.showModal();
+  });
+}
+async function offerConflicts() {
+  for (const s of state.songs.filter((x) => x.conflict)) await offerConflict(s);
+}
+$('mHistory').onclick = async () => {
+  $('dlgMore').close();
+  const song = state.cur;
+  if (!song || db.isDoc(song)) return;
+  if (!song.driveId) return toast('Version history is kept for songs shared with the band.', 4000);
+  const ul = $('histList');
+  ul.textContent = 'Loading…';
+  $('dlgHistory').showModal();
+  try {
+    const list = await srv.songHistory(song.id);
+    ul.textContent = '';
+    if (!list.length) ul.textContent = 'No saved versions yet. They are kept from the next change on.';
+    for (const v of list) {
+      const li = document.createElement('li');
+      const w = document.createElement('div'); w.className = 'when';
+      w.textContent = new Date(v.at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+      const sm = document.createElement('small'); sm.textContent = `${v.by || 'someone'} · ${v.title || ''}`;
+      w.append(sm);
+      const b = document.createElement('button'); b.textContent = 'Restore';
+      b.onclick = async () => {
+        try {
+          const full = await srv.songVersion(song.id, v.rev);
+          if (!(await askDialog({ message: `Put the version from ${w.firstChild.textContent} into “${song.title}”?\nIt becomes an edit you can sync, and the current text stays in the history.`, ok: 'Restore' }))) return;
+          await flush();
+          song.text = full.text;
+          db.refreshMeta(song);
+          song.dirty = true;
+          song.updatedAt = Date.now();
+          await db.put('songs', song);
+          $('dlgHistory').close();
+          await loadSongs(); renderList(); await render(); updateSyncState();
+          toast('Restored. Tap Sync to share it with the band.', 4000);
+        } catch (e) { toast(e.message, 5000); }
+      };
+      li.append(w, b);
+      ul.append(li);
+    }
+  } catch (e) { ul.textContent = e.message; }
+};
+$('histClose').onclick = () => $('dlgHistory').close();
 
 // ---------- stage view ----------
 // ---- stage extras: keep awake, night mode, touch lock ----

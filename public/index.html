@@ -229,6 +229,7 @@
     <button id="mAddSet">Add to set…</button>
     <button id="mMove">Move to folder…</button>
     <button id="mShare">Share with the band</button>
+    <button id="mHistory">Version history…</button>
     <button id="mCopy">Make personal copy</button>
     <button id="mExportCho">Download chart (.cho)</button>
     <button id="mExportBundle">Download my copy with annotations</button>
@@ -322,6 +323,26 @@
   </form>
 </dialog>
 
+<dialog id="dlgConflict">
+  <h2 id="cfTitle">Two versions of this song</h2>
+  <p id="cfMsg" class="hint"></p>
+  <div class="cfcols">
+    <label>The band's version<textarea id="cfTheirs" readonly rows="10"></textarea></label>
+    <label>Your version<textarea id="cfMine" readonly rows="10"></textarea></label>
+  </div>
+  <div class="row end cfbtns">
+    <button id="cfLater">Decide later</button>
+    <button id="cfBoth">Keep both</button>
+    <button id="cfTheirsBtn">Use the band's</button>
+    <button id="cfMineBtn" class="primary">Use mine</button>
+  </div>
+</dialog>
+<dialog id="dlgHistory">
+  <h2>Version history</h2>
+  <p class="hint">The last 20 saved versions of this chart. Restoring puts that version into the song as an edit; sync to share it with the band.</p>
+  <ul id="histList" class="histlist"></ul>
+  <div class="row end"><button id="histClose">Close</button></div>
+</dialog>
 <dialog id="dlgAsk">
   <p id="askMsg"></p>
   <textarea id="askInput" rows="3" hidden></textarea>

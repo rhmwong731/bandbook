@@ -40,6 +40,14 @@ await call('PUT', '/api/ink/' + inkSong, { token: A.token, body: { json: '{"stro
 assert.ok((await call('GET', '/api/sync?since=0', { token: A2.token })).data.ink.some((i) => i.song_id === inkSong), 'linked device sees the same annotations');
 assert.equal((await call('GET', '/api/sync?since=0', { token: B.token })).data.ink.some((i) => i.song_id === inkSong), false, 'other members do not');
 await call('PUT', '/api/ink/' + inkSong, { token: A.token, body: { json: '{}' } });
+// --- version history
+await call('PUT', '/api/songs/' + inkSong, { token: A.token, body: { baseRev: 1, kind: 'cho', title: 'Ink', text: '[G]y', folder: '' } });
+const hist = (await call('GET', '/api/songs/' + inkSong + '/history', { token: A.token })).data.versions;
+assert.deepEqual(hist.map((v) => v.rev), [2, 1]);
+assert.equal((await call('GET', '/api/songs/' + inkSong + '/history/1', { token: A2.token })).data.version.text, '[G]x');
+assert.equal((await call('GET', '/api/songs/' + inkSong + '/history')).status, 401, 'history needs a token');
+for (let i = 0; i < 25; i++) await call('PUT', '/api/songs/' + inkSong, { token: A.token, body: { baseRev: 2 + i, kind: 'cho', title: 'Ink', text: '[G]' + i, folder: '' } });
+assert.equal((await call('GET', '/api/songs/' + inkSong + '/history', { token: A.token })).data.versions.length, 20, 'only the last 20 are kept');
 
 // --- songs: create, pull, edit, conflict, folder move
 const s1 = id();

@@ -77,12 +77,12 @@ export async function syncAll(say = () => {}) {
         stats.merged++;
         continue;
       }
-      const copy = db.makeSong({ text: s.text, folder: s.folder });
-      copy.title = s.title + ' (my edits)';
-      await db.put('songs', copy);
-      const ink = await db.get('ink', s.id);
-      if (ink) await db.put('ink', { ...ink, songId: copy.id, dirty: false, remoteModified: null });
+      // same lines changed on both sides: park the band's version and ask which to keep (nothing is lost, nothing uploads until you choose)
+      s.conflict = { theirs: r.text, title: r.title, rev: r.rev, by: r.updated_by || '', at: Date.now() };
+      s.driveId = r.id;
+      await db.put('songs', s);
       stats.conflicts++;
+      continue;
     }
     s.text = r.text;
     s.baseText = r.text;
@@ -98,7 +98,7 @@ export async function syncAll(say = () => {}) {
   // push local edits and folder moves of shared songs
   songs = await db.all('songs');
   for (const s of songs) {
-    if (!s.driveId || !(s.dirty || s.folderDirty)) continue;
+    if (!s.driveId || s.conflict || !(s.dirty || s.folderDirty)) continue;
     say(`Uploading ${s.title}…`);
     try {
       const r = await srv.putSong(s.id, { baseRev: s.remoteModified || 0, kind: db.isDoc(s) ? s.kind : 'cho', title: s.title, text: db.isDoc(s) ? '' : s.text, folder: s.folder || '', mime: s.mime, file_name: s.fileName });
@@ -214,3 +214,26 @@ export const removeSongEverywhere = (song) => srv.delSong(song.id);
 export const removeSetEverywhere = (set) => srv.delSet(set.id);
 // Remove only from this device and do not bring it back on later syncs.
 export const keepOffDevice = (id) => hide(id);
+
+
+// Settle a parked conflict. choice: 'mine' | 'theirs' | 'both'. Returns the song (and the copy for 'both').
+export async function resolveConflict(song, choice) {
+  const c = song.conflict;
+  if (!c) return { song };
+  const mine = song.text;
+  let copy = null;
+  if (choice === 'both') {
+    copy = db.makeSong({ text: mine, folder: song.folder });
+    copy.title = song.title + ' (my edits)';
+    await db.put('songs', copy);
+  }
+  song.baseText = c.theirs;
+  song.remoteModified = c.rev;
+  if (choice === 'mine') { song.text = mine; song.dirty = mine !== c.theirs; }
+  else { song.text = c.theirs; song.dirty = false; }
+  delete song.conflict;
+  db.refreshMeta(song);
+  song.updatedAt = Date.now();
+  await db.put('songs', song);
+  return { song, copy };
+}

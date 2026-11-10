@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS ink (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (member_id, song_id)
 );
+-- the last 20 texts of every chart, for Version history
+CREATE TABLE IF NOT EXISTS song_versions (song_id TEXT NOT NULL, rev INTEGER NOT NULL, title TEXT, text TEXT NOT NULL, by TEXT, at INTEGER NOT NULL, PRIMARY KEY (song_id, rev));
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 INSERT OR IGNORE INTO meta (key, value) VALUES ('seq', '0');
 INSERT OR IGNORE INTO meta (key, value) VALUES ('folders', '[]');

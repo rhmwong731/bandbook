@@ -67,6 +67,8 @@ export function leave() {
 
 export const pull = async (since) => (await request('GET', '/api/sync?since=' + since)).data;
 export const putSong = async (id, body) => (await request('PUT', '/api/songs/' + id, { body })).data;
+export const songHistory = async (id) => (await request('GET', '/api/songs/' + id + '/history')).data.versions;
+export const songVersion = async (id, rev) => (await request('GET', '/api/songs/' + id + '/history/' + rev)).data.version;
 export const delSong = async (id) => (await request('DELETE', '/api/songs/' + id)).data;
 export const putFile = async (id, blob) => (await request('PUT', '/api/files/' + id, { raw: blob, headers: { 'X-Mime': blob.type || 'application/octet-stream', 'Content-Type': 'application/octet-stream' } })).data;
 export const getFile = async (id) => (await request('GET', '/api/files/' + id)).res.blob();

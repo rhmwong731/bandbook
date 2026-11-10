@@ -115,13 +115,38 @@ async function join(req, env) {
 async function syncPull(url, env, me) {
   const since = Math.max(0, Number(url.searchParams.get('since')) || 0);
   const [songs, sets, ink, folders, seq] = await Promise.all([
-    env.DB.prepare('SELECT id, folder, title, kind, CASE WHEN kind = \'cho\' THEN text ELSE \'\' END AS text, mime, file_name, rev, deleted FROM songs WHERE seq > ?').bind(since).all(),
+    env.DB.prepare('SELECT id, folder, title, kind, CASE WHEN kind = \'cho\' THEN text ELSE \'\' END AS text, mime, file_name, rev, deleted, updated_by FROM songs WHERE seq > ?').bind(since).all(),
     env.DB.prepare('SELECT id, name, json, rev, deleted FROM setlists WHERE seq > ?').bind(since).all(),
     env.DB.prepare('SELECT song_id, json FROM ink WHERE member_id = ? AND seq > ?').bind(me.id, since).all(),
     env.DB.prepare("SELECT value FROM meta WHERE key = 'folders'").first(),
     env.DB.prepare("SELECT value FROM meta WHERE key = 'seq'").first(),
   ]);
   return json({ seq: Number(seq.value), songs: songs.results, setlists: sets.results, ink: ink.results, folders: JSON.parse(folders.value) });
+}
+
+// Version history: the last HISTORY_KEEP texts of every chart, so a bad edit can be rolled back.
+const HISTORY_KEEP = 20;
+let historyReady = false;
+async function ensureHistory(env) {
+  if (historyReady) return;
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS song_versions (song_id TEXT NOT NULL, rev INTEGER NOT NULL, title TEXT, text TEXT NOT NULL, by TEXT, at INTEGER NOT NULL, PRIMARY KEY (song_id, rev))').run();
+  historyReady = true;
+}
+async function saveVersion(env, id, rev, title, text, by, at) {
+  try {
+    await ensureHistory(env);
+    await env.DB.prepare('INSERT OR REPLACE INTO song_versions (song_id, rev, title, text, by, at) VALUES (?, ?, ?, ?, ?, ?)').bind(id, rev, title, text, by, at).run();
+    await env.DB.prepare('DELETE FROM song_versions WHERE song_id = ? AND rev <= ?').bind(id, rev - HISTORY_KEEP).run();
+  } catch { /* history is a safety net: never block a save */ }
+}
+async function songHistory(env, id, rev) {
+  await ensureHistory(env);
+  if (rev) {
+    const r = await env.DB.prepare('SELECT rev, title, text, by, at FROM song_versions WHERE song_id = ? AND rev = ?').bind(id, Number(rev)).first();
+    return r ? json({ version: r }) : fail(404, 'That version is no longer kept.');
+  }
+  const rows = await env.DB.prepare('SELECT rev, title, by, at, length(text) AS size FROM song_versions WHERE song_id = ? ORDER BY rev DESC').bind(id).all();
+  return json({ versions: rows.results });
 }
 
 async function putSong(req, env, me, id) {
@@ -136,6 +161,7 @@ async function putSong(req, env, me, id) {
   if (!cur) {
     await env.DB.prepare('INSERT INTO songs (id, folder, title, kind, text, mime, file_name, rev, seq, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)')
       .bind(id, folder, title, kind, text, str(b.mime, 100) || null, str(b.file_name, 200) || null, seq, me.name, now).run();
+    if (kind === 'cho') await saveVersion(env, id, 1, title, text, me.name, now);
     return json({ rev: 1, seq });
   }
   if (Number(b.baseRev || 0) !== cur.rev) {
@@ -145,6 +171,7 @@ async function putSong(req, env, me, id) {
   const rev = cur.rev + 1;
   await env.DB.prepare('UPDATE songs SET folder = ?, title = ?, kind = ?, text = ?, mime = COALESCE(?, mime), file_name = COALESCE(?, file_name), rev = ?, seq = ?, deleted = 0, updated_by = ?, updated_at = ? WHERE id = ?')
     .bind(folder, title, kind, text, str(b.mime, 100) || null, str(b.file_name, 200) || null, rev, seq, me.name, now, id).run();
+  if (kind === 'cho') await saveVersion(env, id, rev, title, text, me.name, now);
   return json({ rev, seq });
 }
 
@@ -153,6 +180,7 @@ async function deleteSong(env, me, id) {
   if (!cur) return json({ ok: true });
   const seq = await nextSeq(env);
   await env.DB.prepare("UPDATE songs SET deleted = 1, text = '', rev = rev + 1, seq = ?, updated_by = ?, updated_at = ? WHERE id = ?").bind(seq, me.name, Date.now(), id).run();
+  try { await ensureHistory(env); await env.DB.prepare('DELETE FROM song_versions WHERE song_id = ?').bind(id).run(); } catch { /* ignore */ }
   await env.FILES.delete('f:' + id);
   return json({ ok: true });
 }
@@ -261,6 +289,10 @@ export default {
       if (p === '/api/folders' && M === 'PUT') return await putFolders(req, env);
 
       let m;
+      if ((m = p.match(/^\/api\/songs\/([A-Za-z0-9_-]+)\/history(?:\/(\d+))?$/)) && M === 'GET') {
+        if (!ID_RE.test(m[1])) return fail(400, 'Bad id');
+        return await songHistory(env, m[1], m[2]);
+      }
       if ((m = p.match(/^\/api\/(songs|files|setlists|ink)\/([A-Za-z0-9_-]+)$/))) {
         const [, kind, id] = m;
         if (!ID_RE.test(id)) return fail(400, 'Bad id');
