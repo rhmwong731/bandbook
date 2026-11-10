@@ -300,4 +300,4 @@ body.night #viewport { background: #000; }
 .histlist li { display: flex; gap: 8px; align-items: center; padding: 8px; border-radius: 8px; background: #1b1f27; }
 .histlist .when { flex: 1; min-width: 0; }
 .histlist .when small { display: block; color: var(--muted); }
-.badge.conflict { background: #b3402f; color: #fff; }
+#songlist .badge.conflict { background: #b3402f; border-color: #b3402f; color: #fff; font-weight: 700; }

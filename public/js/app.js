@@ -1122,7 +1122,11 @@ $('btnSync').onclick = async () => {
   btn.disabled = true;
   try {
     await flush();
-    const stats = await syncAll((m) => { $('syncState').textContent = m; });
+    let stats = await syncAll((m) => { $('syncState').textContent = m; });
+    for (let i = 0; i < 2 && stats.again; i++) { // something changed while we were uploading: pull it and merge, then upload again
+      const more = await syncAll((m) => { $('syncState').textContent = m; });
+      stats = { ...more, setCopies: (stats.setCopies || 0) + (more.setCopies || 0), pulled: stats.pulled + more.pulled, pushed: stats.pushed + more.pushed, conflicts: stats.conflicts + more.conflicts, merged: (stats.merged || 0) + (more.merged || 0), ink: stats.ink + more.ink, sets: stats.sets + more.sets };
+    }
     await loadSongs();
     await loadSets();
     renderList();
@@ -1137,6 +1141,7 @@ $('btnSync').onclick = async () => {
     if (stats.ink) bits.push(`${stats.ink} annotation set${stats.ink > 1 ? 's' : ''}`);
     if (stats.sets) bits.push(`${stats.sets} set list${stats.sets > 1 ? 's' : ''}`);
     if (stats.merged) bits.push(`${stats.merged} edit${stats.merged > 1 ? 's' : ''} merged with the band's changes`);
+    if (stats.setCopies) bits.push(`${stats.setCopies} set list${stats.setCopies > 1 ? 's' : ''} changed by two people (yours kept as “(my edits)”)`);
     if (stats.conflicts) bits.push(`${stats.conflicts} song${stats.conflicts > 1 ? 's' : ''} need${stats.conflicts > 1 ? '' : 's'} a decision`);
     const localOnly = state.songs.filter((x) => !x.driveId && !x.demo).length;
     const note = localOnly ? ` ${localOnly} song${localOnly > 1 ? 's are' : ' is'} only on this device (tagged "local"). Share ${localOnly > 1 ? 'them' : 'it'} from More, or Settings > Share all.` : '';

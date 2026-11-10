@@ -108,7 +108,7 @@ export async function syncAll(say = () => {}) {
       stats.pushed++;
     } catch (e) {
       if (e.status !== 409) throw e;
-      stats.conflicts++; // someone changed it while we were syncing: the next sync pulls their version and keeps yours as a copy
+      stats.again = (stats.again || 0) + 1; // changed on the server since we looked: a second pass pulls it and merges or asks
     }
   }
 
@@ -127,7 +127,7 @@ export async function syncAll(say = () => {}) {
     try { j = sets.parseSetlist(r.json); } catch { continue; }
     if (cur && cur.dirty) {
       await db.put('setlists', { ...cur, id: db.newId(), name: cur.name + ' (my edits)', driveId: null, remoteModified: null, dirty: false });
-      stats.conflicts++;
+      stats.setCopies = (stats.setCopies || 0) + 1;
     }
     await db.put('setlists', { ...(cur || {}), id: r.id, name: r.name || j.name, items: j.items, gap: j.gap, driveId: r.id, remoteModified: r.rev, dirty: false, updatedAt: j.updatedAt || Date.now() });
     stats.sets++;
@@ -142,7 +142,7 @@ export async function syncAll(say = () => {}) {
       x.dirty = false; x.remoteModified = r.rev;
       await db.put('setlists', x);
       stats.sets++;
-    } catch (e) { if (e.status !== 409) throw e; stats.conflicts++; }
+    } catch (e) { if (e.status !== 409) throw e; stats.again = (stats.again || 0) + 1; }
   }
 
   // personal annotations (private)
