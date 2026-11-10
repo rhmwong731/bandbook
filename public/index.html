@@ -12,7 +12,7 @@
 <body>
 <div id="app">
   <aside id="sidebar">
-    <div class="side-head"><h1>BandBook</h1><span id="syncState"></span></div>
+    <div class="side-head"><h1>BandBook</h1><span id="syncState"></span><button id="btnCloseSide" class="only-narrow iconbtn" aria-label="Close the song list" title="Close">&#10005;</button></div>
     <button id="offlineChip" class="offchip" hidden title="Is this device ready to work without internet?"></button>
     <div class="tabs"><button id="tabSongs" class="on">Songs</button><button id="tabSets">Sets</button></div>
     <input id="search" type="search" placeholder="Search songs" autocomplete="off">
@@ -31,6 +31,7 @@
       <input type="file" id="fileInput" multiple hidden accept=".cho,.crd,.chopro,.chordpro,.pro,.txt,.json,.pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*">
     </div>
   </aside>
+  <div id="sideScrim"></div>
 
   <main id="main">
     <header id="topbar">

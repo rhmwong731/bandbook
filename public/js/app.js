@@ -364,6 +364,8 @@ $('btnConvert').onclick = () => {
 $('btnPlay').onclick = () => state.cur && setMode('play');
 $('btnEdit').onclick = () => state.cur && !db.isDoc(state.cur) && setMode('edit');
 $('btnMenu').onclick = () => $('sidebar').classList.toggle('open');
+$('btnCloseSide').onclick = () => $('sidebar').classList.remove('open');
+$('sideScrim').onclick = () => $('sidebar').classList.remove('open');
 $('search').oninput = (e) => { state.filter = e.target.value; renderList(); };
 
 function transpose(d) {
