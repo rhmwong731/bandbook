@@ -1154,7 +1154,7 @@ $('btnSync').onclick = async () => {
     if (stats.setCopies) bits.push(`${stats.setCopies} set list${stats.setCopies > 1 ? 's' : ''} changed by two people (yours kept as “(my edits)”)`);
     if (stats.conflicts) bits.push(`${stats.conflicts} song${stats.conflicts > 1 ? 's' : ''} need${stats.conflicts > 1 ? '' : 's'} a decision`);
     const localOnly = state.songs.filter((x) => !x.driveId && !x.demo).length;
-    const note = localOnly ? ` ${localOnly} song${localOnly > 1 ? 's are' : ' is'} only on this device (tagged "local"). Share ${localOnly > 1 ? 'them' : 'it'} from More, or Settings > Share all.` : '';
+    const note = localOnly ? ` ${localOnly} song${localOnly > 1 ? 's are' : ' is'} only on this device (tagged "local"). Share ${localOnly > 1 ? 'them' : 'it'} from More, or Settings > Your band > Share all local songs.` : '';
     toast((bits.length ? 'Synced: ' + bits.join(', ') : 'Everything is up to date') + '.' + note, localOnly ? 8000 : 4000);
     if (stats.conflicts) await offerConflicts();
   } catch (e) {

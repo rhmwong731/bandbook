@@ -106,6 +106,8 @@ Done.
 
 Send your bandmates the address and the invite code. On their phone: open the address, add it to the
 home screen, then Settings > Your band > enter the code and their name > Join band > Sync.
+Songs reach the band once they are shared (More > Share with the band, or Settings > Your band > Share all local songs).
+A second device of your own: Settings > Your band > Link another device gives a code to type on the other device.
 Keep the admin code to yourself. Write both codes down: they are not shown again.
 `);
 }

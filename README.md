@@ -22,7 +22,11 @@ npm run setup
 
 The script signs you in to Cloudflare, creates the database and file store, deploys the app, and sets your invite code and an admin code. At the end it prints the band address. Re-run it any time; it reuses what exists.
 
-Then, for each member: open the address, add it to the home screen, **Settings > Your band**, enter the invite code and their name, **Join band**, then **Sync**.
+Then, for each member: open the address, add it to the home screen, **Settings > Your band**, enter the invite code and their name, **Join band**, then **Sync**. Songs only appear for the band once someone shares them (**More > Share with the band**, or **Settings > Your band > Share all local songs**).
+
+**A second device for the same person** (phone and tablet): on the first device tap **Settings > Your band > Link another device** to get a one-time code (good for 10 minutes), then on the other device open **Settings > Your band > Already joined on another device?**, type the code and tap **Link this device**. Both devices are one member with the same private annotations. Joining a second time with the invite code would create a second, separate member instead.
+
+Stick to one browser or installed app per device: each keeps its own saved data.
 
 ### Updating the app later
 
@@ -36,13 +40,15 @@ Then, for each member: open the address, add it to the home screen, **Settings >
 | Your annotations, transpose and metronome tempo | Band database, tied to your device's token | Only you (the server never sends them to anyone else) |
 | Song info for PDFs, attached audio files, display preferences | This device | Only you |
 
-Conflicts: if you edited a song offline and someone else changed it too, your version is kept as a personal copy named "... (my edits)".
+Editing together: if two people change different lines of a song, sync merges both changes. If they change the same lines, sync stops for that song, marks it with a red **conflict** tag and shows both versions: **Use mine**, **Use the band's**, **Keep both** (yours becomes a separate "... (my edits)" song) or **Decide later**. Nothing uploads until you choose, so nobody's version is overwritten. Two people changing the same set list keeps yours as "... (my edits)". Every shared chart also keeps its last 20 saved versions: **More > Version history** lists who changed it and when, and **Restore** puts an old version back as a normal edit.
 
-Removing someone: **Settings > Your band > Members** (asks for the admin code) locks their device out. To change the invite code, run `npx wrangler secret put INVITE_CODE`.
+Chord shapes: the shape you pick in the chord diagrams is saved in the song as a standard ChordPro `{define: ...}` line, so it syncs, is backed up and exports with the song. **Capo:** with a capo set in Song info, the chords you write are the sounding ones, and the chart and diagrams show the shapes to play (toggle with the Capo button next to transpose).
+
+Removing someone: **Settings > Your band > Members** (asks for the admin code) locks their device out, including any devices linked to them. To change the invite code, run `npx wrangler secret put INVITE_CODE`.
 
 ## Features
 
-Chord charts (ChordPro) with transposing, folders, set lists with running time, drag and drop, freehand annotations (pen, highlighter, eraser, text), metronome with count-in, stage view, chord diagrams for guitar and ukulele with a voicing picker, Nashville/Roman numerals, PDF and image songs, audio links or attached audio, backup/restore, and a "Ready for offline" check.
+Chord charts (ChordPro) with transposing, folders, set lists with running time, drag and drop, freehand annotations (pen, highlighter, eraser, text), metronome with count-in, stage view, chord diagrams for guitar and ukulele with a voicing picker (including standard barre shapes and your own typed fingerings), capo view, Nashville/Roman numerals, version history and conflict resolution, a link-another-device code, PDF and image songs, audio links or attached audio, backup/restore, and a "Ready for offline" check.
 
 ## Running locally
 
@@ -65,7 +71,8 @@ public/                     the app (this folder is what gets served)
   js/ink.js                 annotation canvas
   js/store.js               IndexedDB + settings
   js/server.js              client for the band server
-  js/sync.js                two-way sync with revisions and conflict copies
+  js/sync.js                two-way sync: revisions, merging, parked conflicts
+  js/merge.js               three-way line merge for song text (tested)
   js/sets.js, order.js, dnd.js   set lists, ordering, drag and drop (tested)
   js/docview.js             PDF (pdf.js, loaded lazily) and images
   js/backup.js              backup / restore (tested)
@@ -84,7 +91,8 @@ tests/, tests-integration/  unit tests, server test
 - Free-tier limits are generous for a band (on Cloudflare's free plan, roughly: 100,000 requests a day, a 5 GB database, 1 GB of file storage and 1,000 file uploads a day; check their pricing page for current numbers). A PDF is capped at 20 MB.
 - Member sign-in is a shared invite code plus a per-device token. That is right for a band's charts, not for secrets.
 - PDF and image songs: their info (tempo, length, audio) is stored per device. PDFs can't be transposed.
-- Chord voicings are generated by an algorithm, not hand-curated.
+- Chord voicings come from an algorithm plus a set of standard moveable barre shapes. Check shapes you rely on, and type your own fingering with the ✎ button if one is missing.
+- Version history keeps the last 20 versions of each chart, starting from the first change after it was introduced.
 
 ## Porting to iOS / Android
 
@@ -94,7 +102,7 @@ Wrap `public/` with Capacitor. The app talks to the band server over plain HTTPS
 
 ## Keeping the band private
 
-- The address of your server is not secret, so the invite code is the front door. Make it long and random (not the band name), and change it with `npx wrangler secret put INVITE_CODE` once everyone has joined. Members who already joined stay signed in; only new people need the new code.
+- The address of your server is not secret, so the invite code is the front door. Make it long and random (not the band name), and change it with `npx wrangler secret put INVITE_CODE` (or in the Cloudflare dashboard: Workers & Pages > bandbook > Settings > Variables and Secrets) once everyone has joined. Members who already joined stay signed in; only new people need the new code.
 - Wrong guesses are limited to 8 per 10 minutes per address, for both the invite code and the admin code.
 - Songs, set lists, files and annotations are only served to a signed-in member. Removing a member under Settings > Your band > Members locks their device out.
 - Turn on two-step sign-in for your GitHub and Cloudflare accounts.

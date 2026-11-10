@@ -60,7 +60,7 @@
             <option value="nashville">Chords: 1 4 5</option>
             <option value="roman">Chords: I IV V</option>
           </select>
-          <button id="btnChords" title="Chord diagrams for this song">Diagrams</button>
+          <button id="btnChords" title="Chord diagrams for this song. The shape you pick for a chord is saved in the song">Diagrams</button>
           <button id="btnDark" title="Dark page (easier on the eyes on a dark stage)">Dark</button>
         </div>
         <div class="group" id="zoomGroup">
@@ -202,7 +202,7 @@
       </div>
       <div id="joinedBox" hidden>
         <p id="joinedInfo"></p>
-        <p class="hint">Songs, PDFs and set lists are shared with everyone in the band. Your annotations stay private to you.</p>
+        <p class="hint">Songs, PDFs and set lists are shared with everyone in the band. Your annotations stay private to you and follow you to any device you link. To sign in your tablet or phone as you, tap Link another device here and type the code on that device.</p>
         <div class="row"><button type="button" id="btnShareAll" title="Upload every song marked local so the band gets it">Share all local songs</button><button type="button" id="btnLinkDev" title="Show a code to sign in your tablet or phone as you">Link another device</button><button type="button" id="btnMembers">Members&hellip;</button><button type="button" id="btnLeave">Leave band on this device</button></div>
       </div>
     </div>
@@ -309,7 +309,7 @@
       <label>Title<input id="iTitle" autocomplete="off"></label>
       <label>Artist<input id="iArtist" autocomplete="off"></label>
       <label>Key<input id="iKey" placeholder="G, Am, F#m" autocomplete="off"></label>
-      <label>Capo<input id="iCapo" placeholder="0" autocomplete="off"></label>
+      <label>Capo (fret)<input id="iCapo" placeholder="0" autocomplete="off"></label>
       <label>Tempo (bpm)<input id="iTempo" inputmode="numeric" autocomplete="off"></label>
       <label>Time signature<input id="iTime" placeholder="4/4" autocomplete="off"></label>
       <label>Length (m:ss)<input id="iDur" placeholder="3:45" autocomplete="off"></label>
@@ -321,7 +321,7 @@
       <span class="hint" id="iAttachNote"></span>
       <input type="file" id="audioFile" accept="audio/*" hidden>
     </div>
-    <p class="hint">Info is saved into the chart (ChordPro directives) so the band sees it too. An attached audio file stays on this device only. Your metronome tempo is personal and separate.</p>
+    <p class="hint">Info is saved into the chart (ChordPro directives) so the band sees it too. An attached audio file stays on this device only. Your metronome tempo is personal and separate. With a capo set, the chords you write are the sounding ones, and the chart and chord diagrams show the shapes to play (switch with the Capo button next to transpose).</p>
     <div class="row end"><button value="cancel">Cancel</button><button type="submit" value="save" class="primary">Save</button></div>
   </form>
 </dialog>
