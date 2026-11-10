@@ -304,3 +304,8 @@ body.night #viewport { background: #000; }
 
 #sheet.measure .line { flex-wrap: nowrap; }
 #btnFit.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.capogrp { display: inline-flex; gap: 2px; }
+.capogrp button { padding-left: 8px; padding-right: 8px; }
+#btnCapo { min-width: 76px; }
+#btnCapo.on { background: var(--accent); border-color: var(--accent); color: #fff; }

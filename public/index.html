@@ -52,7 +52,7 @@
           <button id="trDown" title="Transpose down">&minus;</button>
           <span id="trLabel">0</span>
           <button id="trUp" title="Transpose up">+</button>
-          <button id="btnCapo" hidden>Capo</button>
+          <span class="capogrp" role="group" aria-label="Your capo"><button id="capoDn" title="Capo one fret lower (only for you)">&minus;</button><button id="btnCapo" title="Your capo for this song">Capo</button><button id="capoUp" title="Capo one fret higher (only for you)">+</button></span>
         </div>
         <div class="group" id="viewGroup">
           <select id="chordStyle" title="How chords are shown">
@@ -322,7 +322,7 @@
       <span class="hint" id="iAttachNote"></span>
       <input type="file" id="audioFile" accept="audio/*" hidden>
     </div>
-    <p class="hint">Info is saved into the chart (ChordPro directives) so the band sees it too. An attached audio file stays on this device only. Your metronome tempo is personal and separate. With a capo set, the chords you write are the sounding ones, and the chart and chord diagrams show the shapes to play (switch with the Capo button next to transpose).</p>
+    <p class="hint">Info is saved into the chart (ChordPro directives) so the band sees it too. An attached audio file stays on this device only. Your metronome tempo is personal and separate. The capo here is the song's default for the band. With a capo, the chords you write are the sounding ones, and the chart and chord diagrams show the shapes to play. Each member can set their own capo with the Capo −/+ next to transpose; that is saved only for you.</p>
     <div class="row end"><button value="cancel">Cancel</button><button type="submit" value="save" class="primary">Save</button></div>
   </form>
 </dialog>

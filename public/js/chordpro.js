@@ -283,8 +283,9 @@ export function renderSheet(container, parsed, { transpose = 0, style = 'letters
   if (transpose) facts.push(`(${transpose > 0 ? '+' : ''}${transpose})`);
   if (capoShift) {
     const k = parsed.meta.key ? transposeKey(parsed.meta.key, transpose - capoShift) : '';
-    facts.push(`Capo ${capoShift}` + (k ? ` · play shapes in ${k}` : ' · showing capo shapes'));
-  } else if (parsed.meta.capo) facts.push('Capo ' + parsed.meta.capo);
+    const mine = parsed.meta.capo && Number(parsed.meta.capo) !== capoShift ? ` (yours; the song says ${parsed.meta.capo})` : '';
+    facts.push(`Capo ${capoShift}${mine}` + (k ? ` · play shapes in ${k}` : ' · showing capo shapes'));
+  } else if (parsed.meta.capo && Number(parsed.meta.capo) > 0) facts.push(`Capo ${parsed.meta.capo} in the song · you are playing without`);
   if (parsed.meta.tempo) facts.push(parsed.meta.tempo + ' bpm');
   if (parsed.meta.duration) facts.push(formatDuration(parseDuration(parsed.meta.duration)));
   if (parsed.meta.time) facts.push(parsed.meta.time);

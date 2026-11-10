@@ -187,30 +187,35 @@ async function openSong(id, setId = null) {
 
 const durLabel = (song) => { const d = db.durationOf(song); return d ? formatDuration(d) : ''; };
 
-// Capo: {capo: N} in the song means the chords are the sounding ones. With the capo view on (the default),
-// the chart and chord diagrams show the shapes to play N frets down. The toggle is remembered per device.
-const capoFrets = () => { const n = parseInt(state.parsed?.meta?.capo ?? state.cur?.info?.capo, 10); return n >= 1 && n <= 11 ? n : 0; };
-const capoOff = () => db.settings.get('capoOff', {});
-function capoShift() {
-  const n = capoFrets();
-  return n && state.cur && !capoOff()[state.cur.id] ? n : 0;
-}
+// Capo. The song's {capo: N} is the band's default and the chords are written as they sound. Everyone can set their own
+// capo (saved with their annotations, never shared); the chart and chord diagrams then show the shapes to play with it.
+const songCapo = () => { const n = parseInt(state.parsed?.meta?.capo ?? state.cur?.info?.capo, 10); return n >= 1 && n <= 11 ? n : 0; };
+const myCapo = () => (Number.isInteger(state.ink?.capo) ? state.ink.capo : songCapo());
+function capoShift() { return state.cur && !db.isDoc(state.cur) ? myCapo() : 0; }
 function updateCapoBtn() {
-  const n = capoFrets();
+  const n = myCapo();
   const b = $('btnCapo');
-  b.hidden = !n || db.isDoc(state.cur);
-  b.textContent = 'Capo ' + n;
-  b.classList.toggle('on', !!capoShift());
-  b.title = capoShift() ? 'Showing the shapes to play with the capo. Tap to show the sounding chords instead.' : 'Showing the sounding chords. Tap to show capo shapes.';
+  b.textContent = n ? 'Capo ' + n : 'No capo';
+  b.classList.toggle('on', n > 0);
+  const own = Number.isInteger(state.ink?.capo) && state.ink.capo !== songCapo();
+  b.title = (n ? `Showing the shapes to play with a capo on fret ${n}` : 'Showing the sounding chords') + (own ? `. This is your own setting; the song says ${songCapo() || 'no capo'}.` : '.') + ' Tap to go back to the song\'s capo.';
+  $('capoDn').disabled = n <= 0;
+  $('capoUp').disabled = n >= 11;
 }
-$('btnCapo').onclick = () => {
-  const o = { ...capoOff() };
-  if (o[state.cur.id]) delete o[state.cur.id]; else o[state.cur.id] = 1;
-  db.settings.set('capoOff', o);
+function setMyCapo(n) {
+  if (!state.ink) return;
+  n = Math.max(0, Math.min(11, n));
+  if (n === songCapo()) delete state.ink.capo; else state.ink.capo = n;
+  state.ink.dirty = true;
+  state.ink.updatedAt = Date.now();
+  saveInkSoon();
   const keep = $('viewport').scrollTop;
   render();
   $('viewport').scrollTop = keep;
-};
+}
+$('capoDn').onclick = () => setMyCapo(myCapo() - 1);
+$('capoUp').onclick = () => setMyCapo(myCapo() + 1);
+$('btnCapo').onclick = () => setMyCapo(songCapo());
 
 async function render() {
   const song = state.cur;
