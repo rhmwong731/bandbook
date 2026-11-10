@@ -83,14 +83,61 @@ export function transposeChord(chord, steps, preferFlats) {
   });
 }
 
+// ---- spelling: chords and keys are spelled the way a musician would write them in the new key ----
+const LETTERS = 'CDEFGAB';
+const NAT = [0, 2, 4, 5, 7, 9, 11];
+const MAJOR_TO = ['C', 'Db', 'D', 'Eb', 'E', 'F', null, 'G', 'Ab', 'A', 'Bb', 'B']; // null = F# or Gb (tie)
+const MINOR_TO = ['C', 'C#', 'D', null, 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B']; // null = D#m or Ebm (tie)
+function spellPc(pc, letterIdx) { // the note with this letter that has this pitch class, or null if it needs a double accidental
+  const d = ((((pc - NAT[letterIdx]) % 12) + 12 + 6) % 12) - 6;
+  if (d === 0) return LETTERS[letterIdx];
+  if (d === 1) return LETTERS[letterIdx] + '#';
+  if (d === -1) return LETTERS[letterIdx] + 'b';
+  return null;
+}
+function parseKey(key) {
+  const m = String(key || '').match(/^([A-G][#b]?)(.*)$/);
+  if (!m || NOTE_INDEX[m[1]] === undefined) return null;
+  return { tonic: m[1], rest: m[2], minor: /^m(?!aj)/.test(m[2]) };
+}
+// The tonic's new name. Ties (F#/Gb, D#m/Ebm) follow the original key: sharps stay sharps, flats stay flats.
+function targetTonic(k, steps) {
+  const pc = (((NOTE_INDEX[k.tonic] + steps) % 12) + 12) % 12;
+  let name = (k.minor ? MINOR_TO : MAJOR_TO)[pc];
+  if (!name) {
+    const flatty = k.tonic.includes('b') || FLAT_KEYS.has(k.tonic + (k.minor ? 'm' : ''));
+    name = flatty ? (k.minor ? 'Eb' : 'Gb') : (k.minor ? 'D#' : 'F#');
+  }
+  return { name, pc, letter: LETTERS.indexOf(name[0]) };
+}
+
 export function transposeKey(key, steps) {
   if (!key || !steps) return key;
-  const m = key.match(/^([A-G][#b]?)(.*)$/);
-  if (!m) return key;
-  const next = (((NOTE_INDEX[m[1]] + steps) % 12) + 12) % 12;
-  const minor = /^m(?!aj)/.test(m[2]);
-  const flats = FLAT_KEYS.has(FLAT[next] + (minor ? 'm' : ''));
-  return (flats ? FLAT[next] : SHARP[next]) + m[2];
+  const k = parseKey(key);
+  if (!k) return key;
+  return targetTonic(k, steps).name + k.rest;
+}
+
+// Returns chord => transposed chord, spelled by scale degree relative to the key (so Eb stays a flat chord in G: Bb, not A#).
+// Without a key it falls back to plain sharp/flat spelling.
+export function makeTransposer(key, steps) {
+  const k = steps ? parseKey(key) : null;
+  if (!steps) return (c) => c;
+  if (!k) return (c) => transposeChord(c, steps);
+  const t = targetTonic(k, steps);
+  const shift = t.letter - LETTERS.indexOf(k.tonic[0]);
+  const fallbackFlats = t.name.includes('b') || FLAT_KEYS.has(t.name + (k.minor ? 'm' : ''));
+  const one = (note) => {
+    const idx = NOTE_INDEX[note];
+    if (idx === undefined) return note;
+    const pc = (((idx + steps) % 12) + 12) % 12;
+    const letter = (((LETTERS.indexOf(note[0]) + shift) % 7) + 7) % 7;
+    return spellPc(pc, letter) || (fallbackFlats ? FLAT : SHARP)[pc];
+  };
+  return (chord) => !chord ? chord : chord.replace(/[A-G][#b]?/g, (note, offset) => {
+    const prev = chord[offset - 1];
+    return offset !== 0 && prev !== '/' ? note : one(note); // only the root and a slash bass, never letters inside "sus", "add", "dim"
+  });
 }
 
 export function prefersFlats(key, steps) {
@@ -102,8 +149,8 @@ export function prefersFlats(key, steps) {
 
 export function transposeText(text, steps) {
   const parsed = parseChordPro(text);
-  const flats = prefersFlats(parsed.meta.key, steps);
-  return String(text).replace(/\[([^\]]*)\]/g, (_, c) => `[${transposeChord(c.trim(), steps, flats)}]`)
+  const tr = makeTransposer(parsed.meta.key, steps);
+  return String(text).replace(/\[([^\]]*)\]/g, (_, c) => `[${tr(c.trim())}]`)
     .replace(/(\{\s*key\s*:\s*)([^}]*?)(\s*\})/i, (_, a, k, z) => a + transposeKey(k.trim(), steps) + z);
 }
 
@@ -271,7 +318,7 @@ export function convertChordsOverLyrics(text) {
 // capoShift > 0: show the shapes to play with a capo that many frets up (chords sound as written)
 export function renderSheet(container, parsed, { transpose = 0, style = 'letters', capoShift = 0 } = {}) {
   container.textContent = '';
-  const flats = prefersFlats(parsed.meta.key, transpose - capoShift);
+  const tr = makeTransposer(parsed.meta.key, transpose - capoShift);
   const useNum = style !== 'letters' && !!keyRoot(parsed.meta.key);
   container.dataset.numerals = useNum ? '1' : '';
   const head = el('div', 'song-head');
@@ -311,7 +358,7 @@ export function renderSheet(container, parsed, { transpose = 0, style = 'letters
       if (!hasChords) row.classList.add('plain');
       for (const s of ln.segs) {
         const seg = el('span', 'seg');
-        if (hasChords) seg.append(el('span', 'ch', s.chord ? (useNum ? toNumeral(s.chord, parsed.meta.key, style) : transposeChord(s.chord, transpose - capoShift, flats)) : '\u00a0'));
+        if (hasChords) seg.append(el('span', 'ch', s.chord ? (useNum ? toNumeral(s.chord, parsed.meta.key, style) : tr(s.chord)) : '\u00a0'));
         seg.append(el('span', 'ly', s.text || (s.chord ? '\u00a0\u00a0' : '')));
         row.append(seg);
       }

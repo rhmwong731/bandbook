@@ -1,5 +1,5 @@
 import * as db from './store.js';
-import { parseChordPro, renderSheet, convertChordsOverLyrics, transposeChord, prefersFlats, chordsOf, setDirective, parseDuration, formatDuration, parseDefines, setDefine } from './chordpro.js';
+import { parseChordPro, renderSheet, convertChordsOverLyrics, makeTransposer, chordsOf, setDirective, parseDuration, formatDuration, parseDefines, setDefine } from './chordpro.js';
 import { voicings, renderSvg, TUNINGS, shapeText, parseShape, customVoicing } from './diagram.js';
 import { Metronome, tapTempo, clampBpm, beatsPerBar } from './metronome.js';
 import { renderDoc, closeDoc } from './docview.js';
@@ -1221,12 +1221,12 @@ function drawChordStrip() {
   box.textContent = '';
   if (!state.parsed || !state.showChords) return;
   const t = (state.ink.transpose || 0) - capoShift();
-  const flats = prefersFlats(state.parsed.meta.key, t);
+  const tr = makeTransposer(state.parsed.meta.key, t);
   const inst = db.settings.get('instrument', 'guitar');
   $('instrument').value = inst;
   const defs = parseDefines(state.cur?.text);
   for (const c of chordsOf(state.parsed)) {
-    const name = transposeChord(c, t, flats);
+    const name = tr(c);
     const vs = voicings(name, inst);
     // the pick lives in the song itself ({define: ...} line), so it syncs, backs up and exports with the song
     const nStr = TUNINGS[inst].strings.length;
