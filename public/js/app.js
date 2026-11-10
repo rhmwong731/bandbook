@@ -1054,6 +1054,16 @@ $('btnJoin').onclick = async () => {
   } catch (e) { toast(e.message, 6000); }
   finally { $('btnJoin').disabled = false; }
 };
+$('btnUpdate').onclick = async () => {
+  $('btnUpdate').disabled = true;
+  toast('Checking for a new version…');
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) { await reg.update().catch(() => {}); await new Promise((r) => setTimeout(r, 1500)); }
+  } catch { /* reload anyway */ }
+  await flush();
+  location.reload();
+};
 $('btnLink').onclick = async () => {
   const link = $('setLink').value.trim();
   if (!link) return toast('Enter the link code from your other device');
