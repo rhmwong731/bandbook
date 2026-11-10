@@ -48,7 +48,7 @@ Removing someone: **Settings > Your band > Members** (asks for the admin code) l
 
 ## Features
 
-Chord charts (ChordPro) with transposing, folders, set lists with running time, drag and drop, freehand annotations (pen, highlighter, eraser, text), metronome with count-in, stage view, chord diagrams for guitar and ukulele with a voicing picker (including standard barre shapes and your own typed fingerings), capo view, Nashville/Roman numerals, version history and conflict resolution, a link-another-device code, PDF and image songs, audio links or attached audio, backup/restore, and a "Ready for offline" check.
+Chord charts (ChordPro) with transposing, folders, set lists with running time, drag and drop, freehand annotations (pen, highlighter, eraser, text), metronome with count-in, stage view, chord diagrams for guitar and ukulele with a voicing picker (including standard barre shapes and your own typed fingerings), capo view, a Fit button that sizes the text so the longest line fits without wrapping, Nashville/Roman numerals, version history and conflict resolution, a link-another-device code, PDF and image songs, audio links or attached audio, backup/restore, and a "Ready for offline" check.
 
 ## Running locally
 

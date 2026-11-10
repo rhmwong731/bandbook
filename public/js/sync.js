@@ -152,14 +152,14 @@ export async function syncAll(say = () => {}) {
     try { j = JSON.parse(r.json); } catch { continue; }
     const rec = await db.get('ink', r.song_id);
     if (rec && (rec.dirty || (rec.updatedAt || 0) >= (j.updatedAt || 0))) continue;
-    await db.put('ink', { songId: r.song_id, strokes: j.strokes || [], transpose: j.transpose || 0, tempo: j.tempo || 0, updatedAt: j.updatedAt || 0, dirty: false });
+    await db.put('ink', { songId: r.song_id, strokes: j.strokes || [], transpose: j.transpose || 0, tempo: j.tempo || 0, fit: !!j.fit, updatedAt: j.updatedAt || 0, dirty: false });
     stats.ink++;
   }
   for (const s of await db.all('songs')) {
     if (!s.driveId) continue;
     const rec = await db.get('ink', s.id);
     if (!rec?.dirty) continue;
-    await srv.putInk(s.id, JSON.stringify({ v: 1, strokes: rec.strokes, transpose: rec.transpose || 0, tempo: rec.tempo || 0, updatedAt: rec.updatedAt }));
+    await srv.putInk(s.id, JSON.stringify({ v: 1, strokes: rec.strokes, transpose: rec.transpose || 0, tempo: rec.tempo || 0, fit: !!rec.fit, updatedAt: rec.updatedAt }));
     rec.dirty = false;
     await db.put('ink', rec);
     stats.ink++;

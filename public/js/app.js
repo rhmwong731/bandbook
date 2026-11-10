@@ -237,6 +237,7 @@ async function render() {
     $('sheet').classList.remove('doc');
     state.parsed = parseChordPro(song.text);
     updateCapoBtn();
+    updateFitBtn();
     const style = db.settings.get('chordStyle', 'letters');
     renderSheet($('sheet'), state.parsed, { transpose: t, style, capoShift: capoShift() });
     if (style !== 'letters' && !$('sheet').dataset.numerals && !state.numWarned) {
@@ -253,7 +254,37 @@ async function render() {
   updateSetNav();
 }
 
+// Fit: size the text so the longest line fits the page width without wrapping (the page stays 800px wide, so annotations keep their place)
+function applyFit() {
+  const sh = $('sheet');
+  sh.style.fontSize = '';
+  if (!state.ink?.fit || db.isDoc(state.cur)) return;
+  sh.classList.add('measure');
+  let widest = 0, avail = 0;
+  for (const l of sh.querySelectorAll('.line')) { widest = Math.max(widest, l.scrollWidth); avail = Math.max(avail, l.clientWidth); }
+  sh.classList.remove('measure');
+  if (!widest || !avail) return;
+  const fs = Math.max(14, Math.min(30, 22 * 0.96 * (avail / widest)));
+  sh.style.fontSize = fs.toFixed(2) + 'px';
+}
+function updateFitBtn() {
+  $('btnFit').hidden = db.isDoc(state.cur);
+  $('btnFit').classList.toggle('on', !!state.ink?.fit);
+}
+$('btnFit').onclick = () => {
+  if (!state.ink) return;
+  state.ink.fit = !state.ink.fit;
+  state.ink.dirty = true;
+  state.ink.updatedAt = Date.now();
+  saveInkSoon();
+  updateFitBtn();
+  const keep = $('viewport').scrollTop;
+  layout();
+  $('viewport').scrollTop = keep;
+};
+
 function layout() {
+  applyFit();
   const vp = $('viewport');
   const s = Math.max(0.3, (vp.clientWidth / PAGE_W) * state.zoom);
   const h = Math.max($('sheet').offsetHeight + 40, vp.clientHeight / s);
