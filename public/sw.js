@@ -1,5 +1,5 @@
 // Offline app shell. Same-origin GETs: cache-first, refreshed in the background.
-const CACHE = 'bandbook-v33';
+const CACHE = 'bandbook-v34';
 const SHELL = ['./', 'index.html', 'styles.css', 'road.css', 'fonts/archivo-narrow-500.woff2', 'fonts/archivo-narrow-700.woff2', 'fonts/archivo-500.woff2', 'fonts/archivo-700.woff2', 'fonts/big-shoulders-stencil-800.woff2', 'fonts/permanent-marker-400.woff2', 'manifest.webmanifest', 'icon.svg',
   'js/app.js', 'js/chordpro.js', 'js/ink.js', 'js/store.js', 'js/server.js', 'js/sync.js', 'js/merge.js', 'js/sets.js', 'js/order.js', 'js/dnd.js', 'js/diagram.js', 'js/metronome.js', 'js/docview.js', 'js/backup.js', 'js/offline.js', 'vendor/pdf.min.js', 'vendor/pdf.worker.min.js'];
 

@@ -1375,6 +1375,9 @@ function metroUi(state_) { // 'idle' | 'running' | 'paused'
   go.textContent = state_ === 'running' ? 'Pause' : state_ === 'paused' ? 'Resume' : 'Start';
   go.classList.toggle('running', state_ === 'running');
   go.dataset.s = state_;
+  if (state_ === 'running' && $('metroPanel').classList.contains('opts-open')) { // playing: fold the options away to give the chart room
+    $('metroPanel').classList.remove('opts-open'); $('mOpts').classList.remove('on'); $('mOpts').setAttribute('aria-expanded', 'false');
+  }
   go.setAttribute('aria-label', state_ === 'running' ? 'Pause metronome' : state_ === 'paused' ? 'Resume metronome' : 'Start metronome');
   $('mStop').hidden = state_ === 'idle';
   const on = state_ !== 'idle';
