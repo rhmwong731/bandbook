@@ -162,3 +162,49 @@ dialog label input { text-transform: none; letter-spacing: 0; }
 @media print {
   .side-head h1, #toast { display: none; }
 }
+
+/* ---- icons and compact panels (phone) ---- */
+.ic { display: none; }
+#sgMore, #mOpts { display: none; }
+.mopts { display: contents; }
+#mGo::before, #mStop::before { content: none; }
+@media (max-width: 820px) {
+  .ic { display: block; width: 22px; height: 22px; flex: none; }
+  .lb { display: none; }
+
+  /* stage bar: one row of icons, a second row only when "more" is open */
+  #stageBar { left: 6px; right: 6px; width: auto; max-width: none; margin: 0; bottom: max(6px, env(safe-area-inset-bottom)); padding: 5px; gap: 4px; flex-wrap: wrap; justify-content: stretch; border-width: 2px; }
+  #stageBar button { flex: 1 1 0; min-width: 0; min-height: 46px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; letter-spacing: 0; }
+  #sgTitle { display: none; }
+  #stageBar #sgMore { display: inline-flex; }
+  #stageBar #sgDark, #stageBar #sgNight, #stageBar #sgLock { display: none; }
+  #stageBar.more::after { content: ''; flex: 0 0 100%; order: 9; height: 0; }
+  #stageBar.more #sgDark, #stageBar.more #sgNight, #stageBar.more #sgLock { display: inline-flex; flex: 1 1 30%; order: 10; }
+  #app.stage #viewport { padding-bottom: 72px; }
+
+  /* metronome: one slim row, options behind the slider icon */
+  #metroPanel { flex-wrap: nowrap; gap: 6px; padding: 6px 8px; align-items: center; }
+  #metroPanel .group { flex: none; gap: 3px; }
+  #metroPanel .group button { min-width: 36px; min-height: 40px; padding: 0 6px; }
+  #mBpm { width: 52px; padding: 6px 2px; }
+  #beatDots { flex: 1; min-width: 0; justify-content: center; gap: 5px; }
+  #beatDots i { width: 11px; height: 11px; }
+  #mGo, #mStop, #mOpts { flex: none; width: 40px; min-width: 40px; min-height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 0; }
+  #mStop[hidden] { display: none; }
+  #mGo::before, #mStop::before { content: ''; width: 20px; height: 20px; background: currentColor; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+  #mGo { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 4l13 8-13 8z'/%3E%3C/svg%3E"); }
+  #mGo[data-s=running] { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 4h4v16H6zM14 4h4v16h-4z'/%3E%3C/svg%3E"); }
+  #mStop { --m: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 6h12v12H6z'/%3E%3C/svg%3E"); }
+  #mOpts { display: inline-flex; }
+  .mopts { display: none; }
+  #metroPanel.opts-open { flex-wrap: wrap; }
+  #metroPanel.opts-open .mopts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; flex: 0 0 100%; }
+
+  /* chord diagrams: smaller cards */
+  #chordStrip { padding: 4px 8px; gap: 6px; }
+  #instrument { min-height: 36px; padding: 2px 4px; font-size: 12px; max-width: 86px; }
+  #chordCards .ccard { padding: 3px 4px 4px; }
+  #chordCards .ccard svg { width: 56px; }
+  .ccard .cv { gap: 2px; }
+  .ccard .cv button { padding: 0 5px; }
+}

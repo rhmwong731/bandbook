@@ -11,6 +11,19 @@
 <link rel="stylesheet" href="road.css">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+<symbol id="i-prev" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-scroll" viewBox="0 0 24 24"><path d="M6 6l6 6 6-6M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-metro" viewBox="0 0 24 24"><path d="M9 3h6l3.5 18h-13zM12 17L16 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-chords" viewBox="0 0 24 24"><path d="M5 4h14M5 4v16M9.7 4v16M14.3 4v16M19 4v16M5 9.3h14M5 14.6h14M5 20h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/></symbol>
+<symbol id="i-dark" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 4a8 8 0 010 16z" fill="currentColor"/></symbol>
+<symbol id="i-night" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 018 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+</defs></svg>
 <div id="app">
   <aside id="sidebar">
     <div class="side-head"><h1>BandBook</h1><span id="syncState"></span><button id="btnCloseSide" class="only-narrow iconbtn" aria-label="Close the song list" title="Close">&#10005;</button></div>
@@ -82,22 +95,25 @@
 
     <div id="metroPanel" class="panel" hidden>
       <div class="group">
-        <button id="mBpmDown" title="Slower">&minus;</button>
+        <button id="mBpmDown" title="Slower" aria-label="Slower">&minus;</button>
         <input id="mBpm" type="number" min="30" max="300" value="100" title="Beats per minute">
-        <button id="mBpmUp" title="Faster">+</button>
+        <button id="mBpmUp" title="Faster" aria-label="Faster">+</button>
         <button id="mTap" title="Tap along to set the tempo">Tap</button>
-        <button id="mSave" title="Write this tempo into the song so the whole band gets it">Save to song</button>
       </div>
-      <label class="inl">Beats <select id="mBeats"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>9</option><option>12</option></select></label>
-      <label class="inl">Count-in <select id="mCount"><option value="0">Off</option><option value="1" selected>1 bar</option><option value="2">2 bars</option></select></label>
-      <label class="check"><input type="checkbox" id="mOnly"> Count-in only</label>
-      <label class="check" title="Flash the whole screen on every beat (stronger on beat 1)"><input type="checkbox" id="mFlash"> Flash screen</label>
-      <label class="check"><input type="checkbox" id="mScroll"> Then auto-scroll</label>
-      <label class="inl">Vol <input id="mVol" type="range" min="0.1" max="1" step="0.05" value="0.7"></label>
       <div id="beatDots" aria-hidden="true"></div>
-      <button id="mGo" class="primary">Start</button>
-      <button id="mStop" title="Stop and reset to beat 1" hidden>Stop</button>
-      <span class="hint" id="mHint"></span>
+      <button id="mGo" class="primary" data-s="idle" aria-label="Start metronome">Start</button>
+      <button id="mStop" title="Stop and reset to beat 1" aria-label="Stop and reset to beat 1" hidden>Stop</button>
+      <button id="mOpts" title="More metronome options" aria-label="More metronome options" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg><span class="lb">Options</span></button>
+      <div class="mopts">
+        <button id="mSave" title="Write this tempo into the song so the whole band gets it">Save to song</button>
+        <label class="inl">Beats <select id="mBeats"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>9</option><option>12</option></select></label>
+        <label class="inl">Count-in <select id="mCount"><option value="0">Off</option><option value="1" selected>1 bar</option><option value="2">2 bars</option></select></label>
+        <label class="check"><input type="checkbox" id="mOnly"> Count-in only</label>
+        <label class="check" title="Flash the whole screen on every beat (stronger on beat 1)"><input type="checkbox" id="mFlash"> Flash screen</label>
+        <label class="check"><input type="checkbox" id="mScroll"> Then auto-scroll</label>
+        <label class="inl">Vol <input id="mVol" type="range" min="0.1" max="1" step="0.05" value="0.7"></label>
+        <span class="hint" id="mHint"></span>
+      </div>
     </div>
 
     <div id="chordStrip" class="panel" hidden>
@@ -156,18 +172,19 @@
     </div>
 
     <div id="stageBar" hidden>
-      <button id="sgExit" title="Leave stage view (Esc)">Exit</button>
-      <button id="sgPrev" title="Previous song in set">&lsaquo;</button>
+      <button id="sgExit" title="Leave stage view (Esc)" aria-label="Leave stage view (Esc)"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg><span class="lb">Exit</span></button>
+      <button id="sgPrev" title="Previous song in set" aria-label="Previous song in set"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg><span class="lb">&lsaquo;</span></button>
       <span id="sgTitle"></span>
-      <button id="sgNext" title="Next song in set">&rsaquo;</button>
-      <button id="sgScroll">Scroll</button>
-      <button id="sgSmall">A&minus;</button>
-      <button id="sgBig">A+</button>
-      <button id="sgMetro">Metronome</button>
-      <button id="sgChords">Diagrams</button>
-      <button id="sgDark">Dark</button>
-      <button id="sgNight" title="Dim red screen that keeps your eyes adjusted on a dark stage">Night</button>
-      <button id="sgLock" title="Ignore all touches until you hold Unlock (pedal, keys and metronome keep working)">Lock</button>
+      <button id="sgNext" title="Next song in set" aria-label="Next song in set"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg><span class="lb">&rsaquo;</span></button>
+      <button id="sgScroll" title="Auto-scroll" aria-label="Auto-scroll"><svg class="ic" aria-hidden="true"><use href="#i-scroll"/></svg><span class="lb">Scroll</span></button>
+      <button id="sgSmall" title="Smaller text" aria-label="Smaller text">A&minus;</button>
+      <button id="sgBig" title="Larger text" aria-label="Larger text">A+</button>
+      <button id="sgMetro" title="Metronome" aria-label="Metronome"><svg class="ic" aria-hidden="true"><use href="#i-metro"/></svg><span class="lb">Metronome</span></button>
+      <button id="sgChords" title="Chord diagrams" aria-label="Chord diagrams"><svg class="ic" aria-hidden="true"><use href="#i-chords"/></svg><span class="lb">Diagrams</span></button>
+      <button id="sgMore" title="More: dark page, night, lock" aria-label="More: dark page, night, lock"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span class="lb">More</span></button>
+      <button id="sgDark" title="Dark page" aria-label="Dark page"><svg class="ic" aria-hidden="true"><use href="#i-dark"/></svg><span class="lb">Dark</span></button>
+      <button id="sgNight" title="Dim red screen that keeps your eyes adjusted on a dark stage" aria-label="Dim red screen that keeps your eyes adjusted on a dark stage"><svg class="ic" aria-hidden="true"><use href="#i-night"/></svg><span class="lb">Night</span></button>
+      <button id="sgLock" title="Ignore all touches until you hold Unlock (pedal, keys and metronome keep working)" aria-label="Ignore all touches until you hold Unlock (pedal, keys and metronome keep working)"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><span class="lb">Lock</span></button>
     </div>
 
     <div id="editorWrap" hidden>

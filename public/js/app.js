@@ -1374,6 +1374,8 @@ function metroUi(state_) { // 'idle' | 'running' | 'paused'
   const go = $('mGo');
   go.textContent = state_ === 'running' ? 'Pause' : state_ === 'paused' ? 'Resume' : 'Start';
   go.classList.toggle('running', state_ === 'running');
+  go.dataset.s = state_;
+  go.setAttribute('aria-label', state_ === 'running' ? 'Pause metronome' : state_ === 'paused' ? 'Resume metronome' : 'Start metronome');
   $('mStop').hidden = state_ === 'idle';
   const on = state_ !== 'idle';
   $('btnMetro').classList.toggle('on', on || !$('metroPanel').hidden);
@@ -1680,6 +1682,8 @@ function setStage(on) {
 }
 $('btnStage').onclick = () => state.cur && setStage(true);
 $('sgExit').onclick = () => setStage(false);
+$('sgMore').onclick = () => { const on = $('stageBar').classList.toggle('more'); $('sgMore').classList.toggle('on', on); };
+$('mOpts').onclick = () => { const on = $('metroPanel').classList.toggle('opts-open'); $('mOpts').classList.toggle('on', on); $('mOpts').setAttribute('aria-expanded', String(on)); };
 $('sgScroll').onclick = () => { $('btnScroll').click(); $('sgScroll').classList.toggle('on', state.scrolling); };
 $('sgBig').onclick = () => $('zoomIn').onclick();
 $('sgSmall').onclick = () => $('zoomOut').onclick();
