@@ -237,3 +237,4 @@ dialog label input { text-transform: none; letter-spacing: 0; }
 .side-foot button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; }
 /* edit mode: the editor takes the whole area (the empty chart area no longer holds half the screen) */
 #stageArea:has(#viewport[hidden]) { display: none; }
+#chartBox { margin-bottom: 18px; }

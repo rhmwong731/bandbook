@@ -304,7 +304,6 @@ function setMode(mode) {
   const doc = db.isDoc(state.cur);
   $('transposeGroup').hidden = edit || doc;
   $('viewGroup').hidden = edit;
-  $('chordStyle').hidden = doc;
   $('btnChords').hidden = doc;
   $('btnEdit').hidden = doc;
   $('chordStrip').hidden = edit || doc || !state.showChords;

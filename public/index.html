@@ -89,11 +89,6 @@
           <span class="capogrp" role="group" aria-label="Your capo"><button id="capoDn" title="Capo one fret lower (only for you)">&minus;</button><button id="btnCapo" title="Your capo for this song">Capo</button><button id="capoUp" title="Capo one fret higher (only for you)">+</button></span>
         </div>
         <div class="group" id="viewGroup">
-          <select id="chordStyle" title="How chords are shown">
-            <option value="letters">Chords: A B C</option>
-            <option value="nashville">Chords: 1 4 5</option>
-            <option value="roman">Chords: I IV V</option>
-          </select>
           <button id="btnChords" title="Chord diagrams for this song. The shape you pick for a chord is saved in the song" aria-label="Chord diagrams"><svg class="ic" aria-hidden="true"><use href="#i-chords"/></svg><span class="lb">Diagrams</span></button>
           <button id="btnDark" title="Dark page (easier on the eyes on a dark stage)" aria-label="Dark page"><svg class="ic" aria-hidden="true"><use href="#i-dark"/></svg><span class="lb">Dark</span></button>
         </div>
@@ -227,6 +222,16 @@
 
 <dialog id="dlgSettings">
   <form method="dialog" id="formSettings">
+    <div id="chartBox">
+      <h2>Chords</h2>
+      <label>Show chords as
+        <select id="chordStyle" title="How chords are shown">
+          <option value="letters">Letters: A B C</option>
+          <option value="nashville">Nashville numbers: 1 4 5</option>
+          <option value="roman">Roman numerals: I IV V</option>
+        </select>
+      </label>
+    </div>
     <div id="bandBox">
       <h2>Your band</h2>
       <div id="joinBox">
