@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS members (
   token_hash TEXT UNIQUE NOT NULL,
   created INTEGER NOT NULL,
   revoked INTEGER NOT NULL DEFAULT 0,
-  owner TEXT                              -- set on a linked second device: the member it belongs to
+  owner TEXT,                             -- set on a linked second device: the member it belongs to
+  last_seen INTEGER                       -- when this device last talked to the server
 );
 CREATE TABLE IF NOT EXISTS songs (
   id TEXT PRIMARY KEY,

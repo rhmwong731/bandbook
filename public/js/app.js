@@ -1134,7 +1134,7 @@ $('btnMembers').onclick = async () => {
       const li = document.createElement('li');
       li.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 0';
       const t = document.createElement('span');
-      t.textContent = `${m.name}  \u00b7  joined ${new Date(m.created).toLocaleDateString()}`;
+      t.textContent = `${m.name}  \u00b7  joined ${new Date(m.created).toLocaleDateString()}  \u00b7  last on ${m.last_seen ? new Date(m.last_seen).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'not yet'}`;
       const b = document.createElement('button');
       b.type = 'button'; b.textContent = 'Remove';
       b.onclick = async () => {

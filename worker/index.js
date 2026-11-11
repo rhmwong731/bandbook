@@ -43,7 +43,13 @@ async function authenticate(req, env) {
   if (!m) return null;
   await ensureOwnerColumn(env);
   // a linked device (owner set) acts as its owner: same member id, so same private annotations
-  return env.DB.prepare('SELECT COALESCE(m.owner, m.id) AS id, m.name AS name FROM members m LEFT JOIN members o ON o.id = m.owner WHERE m.token_hash = ? AND m.revoked = 0 AND (m.owner IS NULL OR o.revoked = 0)').bind(await sha256(m[1])).first();
+  const row = await env.DB.prepare('SELECT m.id AS rid, m.last_seen AS seen, COALESCE(m.owner, m.id) AS id, m.name AS name FROM members m LEFT JOIN members o ON o.id = m.owner WHERE m.token_hash = ? AND m.revoked = 0 AND (m.owner IS NULL OR o.revoked = 0)').bind(await sha256(m[1])).first();
+  if (!row) return null;
+  const now = Date.now();
+  if (!row.seen || now - row.seen > 5 * 60 * 1000) { // note when this device was last used (at most every five minutes)
+    try { await env.DB.prepare('UPDATE members SET last_seen = ? WHERE id = ?').bind(now, row.rid).run(); } catch { /* not worth failing a request */ }
+  }
+  return { id: row.id, name: row.name };
 }
 
 // Databases made before "link another device" get the extra column the first time the server runs.
@@ -51,6 +57,7 @@ let ownerReady = false;
 async function ensureOwnerColumn(env) {
   if (ownerReady) return;
   try { await env.DB.prepare('ALTER TABLE members ADD COLUMN owner TEXT').run(); } catch { /* already there */ }
+  try { await env.DB.prepare('ALTER TABLE members ADD COLUMN last_seen INTEGER').run(); } catch { /* already there */ }
   ownerReady = true;
 }
 
@@ -256,7 +263,7 @@ async function admin(req, env, url) {
   if (gate.blocked) return fail(429, 'Too many tries. Wait ten minutes and try again.');
   if (!env.ADMIN_CODE || !(await same(req.headers.get('X-Admin-Code') || '', env.ADMIN_CODE))) { await gate.miss(); return fail(403, 'Admin code needed.'); }
   if (req.method === 'GET') {
-    const r = await env.DB.prepare('SELECT id, name, created FROM members WHERE revoked = 0 AND owner IS NULL ORDER BY created').all();
+    const r = await env.DB.prepare('SELECT m.id, m.name, m.created, MAX(COALESCE(m.last_seen, 0), COALESCE((SELECT MAX(d.last_seen) FROM members d WHERE d.owner = m.id), 0)) AS last_seen FROM members m WHERE m.revoked = 0 AND m.owner IS NULL ORDER BY m.created').all();
     return json({ members: r.results });
   }
   const m = url.pathname.match(/^\/api\/members\/([A-Za-z0-9_-]+)$/);
