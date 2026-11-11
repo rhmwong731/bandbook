@@ -288,6 +288,8 @@ $('btnFit').onclick = () => {
   $('viewport').scrollTop = keep;
 };
 
+document.fonts?.addEventListener?.('loadingdone', () => { if (state.mode === 'play' && state.cur) layout(); });
+
 function layout() {
   applyFit();
   const vp = $('viewport');

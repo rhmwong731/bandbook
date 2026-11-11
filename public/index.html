@@ -28,10 +28,15 @@
 <symbol id="i-hl" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l6-9 4 3-6 9z"/><path d="M9 14l-1.5 3.5L11 17M4 21h8"/></g></symbol>
 <symbol id="i-erase" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h11M5.5 14.5l8-8a2 2 0 013 0l2.5 2.5a2 2 0 010 3L12 19H9l-3.5-3.5a1.4 1.4 0 010-1z"/><path d="M10 10l5 5"/></g></symbol>
 <symbol id="i-note" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H11l-4 4v-4H4z"/><path d="M8.5 9.5h7M12 9.5V13"/></g></symbol>
-<symbol id="i-undo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4.5 11.5 9 16"/><path d="M5 11.5h8a6 6 0 010 12" transform="translate(0 -4)"/></g></symbol>
-<symbol id="i-redo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7l4.5 4.5L15 16"/><path d="M19 11.5h-8a6 6 0 000 12" transform="translate(0 -4)"/></g></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></g></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 000 11H13"/></g></symbol>
 <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></g></symbol>
 <symbol id="i-stylus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M4 21l1.5-3"/></g></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></g></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h10M4 10h7M4 15h5"/><path d="M13 20l1-4 6.5-6.5a2 2 0 013 3L17 19z" transform="translate(-2 0) scale(.95)"/></g></symbol>
+<symbol id="i-fit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14M21 5v14M8 9l-4 3 4 3M16 9l4 3-4 3M7 12h10"/></g></symbol>
+<symbol id="i-stage" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></g></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></g></symbol>
 </svg>
 <div id="app">
   <aside id="sidebar">
@@ -58,7 +63,7 @@
 
   <main id="main">
     <header id="topbar">
-      <button id="btnMenu" class="only-narrow" title="Songs">Songs</button>
+      <button id="btnMenu" class="only-narrow" title="Songs" aria-label="Songs"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg><span class="lb">Songs</span></button>
       <div id="curTitle">BandBook</div>
       <div class="group" id="setNav" hidden>
         <button id="setPrev" title="Previous song in set (Left arrow)">&lsaquo;</button>
@@ -66,10 +71,10 @@
         <button id="setNext" title="Next song in set (Right arrow)">&rsaquo;</button>
       </div>
       <div id="tools">
-        <button id="btnAnno" class="only-narrow" title="Show the pen, highlighter and note tools">Annotate</button>
+        <button id="btnAnno" class="only-narrow" title="Show the pen, highlighter and note tools" aria-label="Annotate"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg><span class="lb">Annotate</span></button>
         <div class="group" id="modeGroup">
-          <button id="btnPlay" class="on">Play</button>
-          <button id="btnEdit">Edit</button>
+          <button id="btnPlay" class="on" title="Play view" aria-label="Play view"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg><span class="lb">Play</span></button>
+          <button id="btnEdit" title="Edit chart" aria-label="Edit chart"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span class="lb">Edit</span></button>
         </div>
         <div class="group" id="transposeGroup">
           <button id="trDown" title="Transpose down">&minus;</button>
@@ -83,23 +88,23 @@
             <option value="nashville">Chords: 1 4 5</option>
             <option value="roman">Chords: I IV V</option>
           </select>
-          <button id="btnChords" title="Chord diagrams for this song. The shape you pick for a chord is saved in the song">Diagrams</button>
-          <button id="btnDark" title="Dark page (easier on the eyes on a dark stage)">Dark</button>
-          <button id="btnFit" title="Fit: sizes the text so the longest line fits the width without wrapping. Saved for this song with your annotations">Fit</button>
+          <button id="btnChords" title="Chord diagrams for this song. The shape you pick for a chord is saved in the song" aria-label="Chord diagrams"><svg class="ic" aria-hidden="true"><use href="#i-chords"/></svg><span class="lb">Diagrams</span></button>
+          <button id="btnDark" title="Dark page (easier on the eyes on a dark stage)" aria-label="Dark page"><svg class="ic" aria-hidden="true"><use href="#i-dark"/></svg><span class="lb">Dark</span></button>
+          <button id="btnFit" title="Fit: sizes the text so the longest line fits the width without wrapping. Saved for this song with your annotations" aria-label="Fit text to width"><svg class="ic" aria-hidden="true"><use href="#i-fit"/></svg><span class="lb">Fit</span></button>
         </div>
         <div class="group" id="zoomGroup">
           <button id="zoomOut" title="Smaller">A&minus;</button>
           <button id="zoomIn" title="Larger">A+</button>
         </div>
         <div class="group" id="scrollGroup">
-          <button id="btnScroll">Scroll</button>
+          <button id="btnScroll" title="Auto-scroll" aria-label="Auto-scroll"><svg class="ic" aria-hidden="true"><use href="#i-scroll"/></svg><span class="lb">Scroll</span></button>
           <input id="scrollSpeed" type="range" min="5" max="120" value="30" title="Auto-scroll speed">
         </div>
-        <button id="btnMetro" title="Metronome and count-in">Metronome</button>
-        <button id="btnMore" title="More">More</button>
+        <button id="btnMetro" title="Metronome and count-in" aria-label="Metronome"><svg class="ic" aria-hidden="true"><use href="#i-metro"/></svg><span class="lb">Metronome</span></button>
+        <button id="btnMore" title="More" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span class="lb">More</span></button>
       </div>
-      <button id="btnStage" title="Stage view: big, distraction-free, for performing">Stage</button>
-      <button id="btnTools" class="only-narrow" title="Show / hide the toolbar">Tools</button>
+      <button id="btnStage" title="Stage view: big, distraction-free, for performing" aria-label="Stage view"><svg class="ic" aria-hidden="true"><use href="#i-stage"/></svg><span class="lb">Stage</span></button>
+      <button id="btnTools" class="only-narrow" title="Show / hide the toolbar" aria-label="Toolbar"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg><span class="lb">Tools</span></button>
     </header>
 
     <div id="metroPanel" class="panel" hidden>

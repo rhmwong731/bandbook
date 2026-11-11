@@ -223,3 +223,10 @@ dialog label input { text-transform: none; letter-spacing: 0; }
 #annobar .swatch { width: 20px; height: 20px; }
 #annobar .swatch { width: 18px; height: 18px; min-width: 0; box-sizing: border-box; }
 #annobar #colors { gap: 6px 4px; }
+
+/* ---- top bar: icons on every screen size (text stays in tooltips) ---- */
+#topbar .ic { display: block; width: 22px; height: 22px; flex: none; }
+#topbar .lb { display: none; }
+#topbar button:has(.ic) { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; padding: 5px 8px; }
+#topbar button.only-narrow { display: none; }
+@media (max-width: 820px) { #topbar button.only-narrow { display: inline-flex; } }
