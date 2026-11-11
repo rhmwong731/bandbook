@@ -230,3 +230,10 @@ dialog label input { text-transform: none; letter-spacing: 0; }
 #topbar button:has(.ic) { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; padding: 5px 8px; }
 #topbar button.only-narrow { display: none; }
 @media (max-width: 820px) { #topbar button.only-narrow { display: inline-flex; } }
+
+/* ---- sidebar footer: icons ---- */
+.side-foot .ic { display: block; width: 22px; height: 22px; flex: none; }
+.side-foot .lb { display: none; }
+.side-foot button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; }
+/* edit mode: the editor takes the whole area (the empty chart area no longer holds half the screen) */
+#stageArea:has(#viewport[hidden]) { display: none; }

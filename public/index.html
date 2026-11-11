@@ -37,6 +37,11 @@
 <symbol id="i-fit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14M21 5v14M8 9l-4 3 4 3M16 9l4 3-4 3M7 12h10"/></g></symbol>
 <symbol id="i-stage" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></g></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></g></symbol>
+<symbol id="i-addsong" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></g></symbol>
+<symbol id="i-addfolder" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M12 10v6M9 13h6"/></g></symbol>
+<symbol id="i-import" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M4 19h16"/></g></symbol>
+<symbol id="i-addset" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M4 11h12M4 16h7M18 13v6M15 16h6"/></g></symbol>
+<symbol id="i-sync" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 00-14.5-4M4 4v4h4M4 13a8 8 0 0014.5 4M20 20v-4h-4"/></g></symbol>
 </svg>
 <div id="app">
   <aside id="sidebar">
@@ -47,15 +52,15 @@
     <ul id="songlist"></ul>
     <div class="side-foot">
       <div id="footSongs" class="foot-group">
-        <button id="btnNew">+ Song</button>
-        <button id="btnFolder">+ Folder</button>
-        <button id="btnImport">Import</button>
+        <button id="btnNew" title="New song" aria-label="New song"><svg class="ic" aria-hidden="true"><use href="#i-addsong"/></svg><span class="lb">+ Song</span></button>
+        <button id="btnFolder" title="New folder" aria-label="New folder"><svg class="ic" aria-hidden="true"><use href="#i-addfolder"/></svg><span class="lb">+ Folder</span></button>
+        <button id="btnImport" title="Import songs or files" aria-label="Import"><svg class="ic" aria-hidden="true"><use href="#i-import"/></svg><span class="lb">Import</span></button>
       </div>
       <div id="footSets" class="foot-group" hidden>
-        <button id="btnSet">+ Set</button>
+        <button id="btnSet" title="New set list" aria-label="New set list"><svg class="ic" aria-hidden="true"><use href="#i-addset"/></svg><span class="lb">+ Set</span></button>
       </div>
-      <button id="btnSync">Sync</button>
-      <button id="btnSettings" title="Settings">Settings</button>
+      <button id="btnSync" title="Sync with the band" aria-label="Sync"><svg class="ic" aria-hidden="true"><use href="#i-sync"/></svg><span class="lb">Sync</span></button>
+      <button id="btnSettings" title="Settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg><span class="lb">Settings</span></button>
       <input type="file" id="fileInput" multiple hidden accept=".cho,.crd,.chopro,.chordpro,.pro,.txt,.json,.pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/*">
     </div>
   </aside>
