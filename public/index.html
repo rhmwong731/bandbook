@@ -23,7 +23,16 @@
 <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 018 0v3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
 <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></symbol>
 <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
-</defs></svg>
+</defs><symbol id="i-view" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V5.5a1.5 1.5 0 013 0V11M12 10V4.5a1.5 1.5 0 013 0V11M15 10.5V6.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1.5a6 6 0 01-5-2.7L4 14.5a1.6 1.6 0 012.6-1.8L9 15V11"/></g></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19z"/><path d="M14.5 6.5l3 3"/></g></symbol>
+<symbol id="i-hl" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l6-9 4 3-6 9z"/><path d="M9 14l-1.5 3.5L11 17M4 21h8"/></g></symbol>
+<symbol id="i-erase" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20h11M5.5 14.5l8-8a2 2 0 013 0l2.5 2.5a2 2 0 010 3L12 19H9l-3.5-3.5a1.4 1.4 0 010-1z"/><path d="M10 10l5 5"/></g></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H11l-4 4v-4H4z"/><path d="M8.5 9.5h7M12 9.5V13"/></g></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4.5 11.5 9 16"/><path d="M5 11.5h8a6 6 0 010 12" transform="translate(0 -4)"/></g></symbol>
+<symbol id="i-redo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7l4.5 4.5L15 16"/><path d="M19 11.5h-8a6 6 0 000 12" transform="translate(0 -4)"/></g></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 7V4h4v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></g></symbol>
+<symbol id="i-stylus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M4 21l1.5-3"/></g></symbol>
+</svg>
 <div id="app">
   <aside id="sidebar">
     <div class="side-head"><h1>BandBook</h1><span id="syncState"></span><button id="btnCloseSide" class="only-narrow iconbtn" aria-label="Close the song list" title="Close">&#10005;</button></div>
@@ -134,11 +143,11 @@
     <div id="stageArea">
     <div id="annobar">
       <div class="group" id="tools">
-        <button data-tool="off" class="on" title="Scroll / view only">View</button>
-        <button data-tool="pen" title="Pen">Pen</button>
-        <button data-tool="highlighter" title="Highlighter">Highlight</button>
-        <button data-tool="eraser" title="Eraser (removes whole strokes)">Erase</button>
-        <button data-tool="text" title="Typed note">Note</button>
+        <button data-tool="off" class="on" title="Scroll / view only" aria-label="View only"><svg class="ic" aria-hidden="true"><use href="#i-view"/></svg><span class="lb">View</span></button>
+        <button data-tool="pen" title="Pen" aria-label="Pen"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg><span class="lb">Pen</span></button>
+        <button data-tool="highlighter" title="Highlighter" aria-label="Highlighter"><svg class="ic" aria-hidden="true"><use href="#i-hl"/></svg><span class="lb">Highlight</span></button>
+        <button data-tool="eraser" title="Eraser (removes whole strokes)" aria-label="Eraser"><svg class="ic" aria-hidden="true"><use href="#i-erase"/></svg><span class="lb">Erase</span></button>
+        <button data-tool="text" title="Typed note" aria-label="Typed note"><svg class="ic" aria-hidden="true"><use href="#i-note"/></svg><span class="lb">Note</span></button>
       </div>
       <div class="group" id="colors">
         <button class="swatch on" data-color="#d11a2a" style="--c:#d11a2a" title="Red"></button>
@@ -147,17 +156,17 @@
         <button class="swatch" data-color="#ffd21f" style="--c:#ffd21f" title="Yellow"></button>
         <button class="swatch" data-color="#111111" style="--c:#111111" title="Black"></button>
       </div>
-      <select id="penWidth" title="Line width">
-        <option value="2">Thin</option>
-        <option value="3" selected>Medium</option>
-        <option value="6">Thick</option>
+      <select id="penWidth" title="Line width (thin / medium / thick)" aria-label="Line width">
+        <option value="2">&#9472;</option>
+        <option value="3" selected>&#9473;</option>
+        <option value="6">&#9644;</option>
       </select>
       <div class="group">
-        <button id="inkUndo">Undo</button>
-        <button id="inkRedo">Redo</button>
-        <button id="inkClear">Clear</button>
+        <button id="inkUndo" title="Undo" aria-label="Undo"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg><span class="lb">Undo</span></button>
+        <button id="inkRedo" title="Redo" aria-label="Redo"><svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg><span class="lb">Redo</span></button>
+        <button id="inkClear" title="Clear all ink" aria-label="Clear all ink"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span class="lb">Clear</span></button>
       </div>
-      <label class="check" title="Fingers scroll, only an Apple Pencil / stylus draws"><input type="checkbox" id="penOnly" checked> Stylus only</label>
+      <label class="check" title="Fingers scroll, only an Apple Pencil / stylus draws"><input type="checkbox" id="penOnly" checked><svg class="ic" aria-hidden="true"><use href="#i-stylus"/></svg><span class="lb">Stylus only</span></label>
     </div>
 
     <div id="viewport">
