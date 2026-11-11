@@ -263,6 +263,7 @@ async function render() {
 function applyFit() {
   const sh = $('sheet');
   sh.style.fontSize = '';
+  return; // Fit is switched off for now
   if (!state.ink?.fit || db.isDoc(state.cur)) return;
   sh.classList.add('measure');
   let widest = 0, avail = 0;
@@ -273,20 +274,7 @@ function applyFit() {
   sh.style.fontSize = fs.toFixed(2) + 'px';
 }
 function updateFitBtn() {
-  $('btnFit').hidden = db.isDoc(state.cur);
-  $('btnFit').classList.toggle('on', !!state.ink?.fit);
 }
-$('btnFit').onclick = () => {
-  if (!state.ink) return;
-  state.ink.fit = !state.ink.fit;
-  state.ink.dirty = true;
-  state.ink.updatedAt = Date.now();
-  saveInkSoon();
-  updateFitBtn();
-  const keep = $('viewport').scrollTop;
-  layout();
-  $('viewport').scrollTop = keep;
-};
 
 document.fonts?.addEventListener?.('loadingdone', () => { if (state.mode === 'play' && state.cur) layout(); });
 
