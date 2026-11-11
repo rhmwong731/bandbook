@@ -102,6 +102,18 @@ input[type=search], dialog input:not([type=checkbox]), #askInput, .panel input[t
 .sec-label { display: inline-block; background: #161616; color: #f1ecdc; font: 700 .6em/1 var(--fn); letter-spacing: .22em; padding: 3px 9px 2px; border-radius: 2px; margin-bottom: 3px; }
 #page.dark .ch { color: #0a6cc4; }
 
+/* ---- annotation rail: vertical bar on the right of the chart ---- */
+#stageArea { flex: 1; display: flex; min-height: 0; min-width: 0; position: relative; }
+#stageArea #viewport { flex: 1; min-width: 0; }
+#annobar { order: 2; flex: none; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 8px; width: 76px; padding: 10px 6px; overflow-x: hidden; overflow-y: auto; background: #191919; border-bottom: 0; border-left: 3px solid #2c2c2c; }
+#annobar #tools { display: contents; position: static; }
+#annobar .group { flex-direction: column; align-items: stretch; gap: 6px; }
+#annobar button { width: 100%; min-height: 40px; padding: 4px 2px; font-size: 10.5px; letter-spacing: .04em; }
+#annobar #colors { display: grid; grid-template-columns: repeat(2, 1fr); justify-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+#annobar .swatch { width: 24px; height: 24px; min-height: 0; padding: 0; }
+#annobar select { width: 100%; min-height: 36px; padding: 2px; font-size: 10.5px; appearance: none; -webkit-appearance: none; text-align: center; text-align-last: center; }
+#annobar .check { flex-direction: column; text-align: center; gap: 4px; font-size: 10px; letter-spacing: .06em; }
+
 /* ---- editor ---- */
 #editorBar { background: #191919; border-bottom: 3px solid #2c2c2c; }
 #editor { background: #0d0d0d; }
@@ -142,7 +154,8 @@ dialog label input { text-transform: none; letter-spacing: 0; }
   #curTitle { font-size: 22px; }
   #topbar button { min-height: 44px; padding: 8px 10px; font-size: 13px; }
   #tools { background: #171717; border-bottom: 3px solid #303030; }
-  #annobar button { min-height: 40px; padding: 6px 10px; }
+  #annobar { position: absolute; right: 6px; top: 6px; z-index: 6; max-height: calc(100% - 12px); overflow-x: hidden; padding: 8px 6px; border: 3px solid #303030; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.7); }
+  #annobar button { min-height: 40px; padding: 4px 2px; }
   #stageBar button { min-height: 44px; font-size: 13px; }
   #sgTitle { font-size: 18px; }
 }
